@@ -49,21 +49,25 @@ if "pronos" not in st.session_state:
 if "bonus" not in st.session_state:
   st.session_state.bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
 
+# --- DESIGN & UI (Correction de la visibilité du texte dans le menu) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f4f6f9; color: #002D62; }
     h1 { color: #002D62 !important; font-weight: 800; text-transform: uppercase; }
-    h2, h3, label, p, span { color: #002D62 !important; font-weight: 600; }
+    h2, h3, label, p { color: #002D62 !important; font-weight: 600; }
     .stButton > button { background-color: #E30613 !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; }
+    
+    /* Style de la barre latérale pour forcer le texte en blanc lisible */
     [data-testid="stSidebar"] { background-color: #002D62; }
-    [data-testid="stSidebar"] span, [data-testid="stSidebar"] div, [data-testid="stSidebar"] label { color: white !important; }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stRadio div { color: white !important; font-weight: 600; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Concours de Pronos - SMC")
+st.title("⚽ Concours de Pronos - SMC")
 
 menu = st.sidebar.radio(
-    "Navigation", ["Faire mon Prono", "Classement", "Espace Admin"]
+    "🧭 Navigation",
+    ["📝 Faire mon Prono", "🏆 Classement", "⚙️ Espace Admin"],
 )
 
 
@@ -86,18 +90,18 @@ def obtenir_liste_participants():
   return sorted(list(tous))
 
 
-if menu == "Faire mon Prono":
-  st.header("Enregistrer ton Pronostic")
+if menu == "📝 Faire mon Prono":
+  st.header("🎯 Enregistrer ton Pronostic")
   if st.session_state.matchs.empty:
     st.info("Aucun match ouvert pour l'instant.")
   else:
     matchs_disponibles = st.session_state.matchs["ID Match"].tolist()
     choix_participant = st.selectbox(
-        "Pseudo", obtenir_liste_participants() + ["Nouveau"]
+        "Pseudo", obtenir_liste_participants() + ["➕ Nouveau"]
     )
     nom_utilisateur = (
         st.text_input("Nouveau pseudo :")
-        if choix_participant == "Nouveau"
+        if choix_participant == "➕ Nouveau"
         else choix_participant
     )
     match_choisi = st.selectbox("Match", matchs_disponibles)
@@ -115,7 +119,7 @@ if menu == "Faire mon Prono":
         "Doublé ?", ["Aucun"] + buteurs_selectionnes
     )
 
-    if st.button("Valider"):
+    if st.button("Valider 🚀"):
       if nom_utilisateur and buteurs_selectionnes:
         choix_clean = prono_1n2.split()[0]
         buteurs_texte_str = ", ".join(buteurs_selectionnes)
@@ -150,8 +154,8 @@ if menu == "Faire mon Prono":
   if not st.session_state.pronos.empty:
     st.dataframe(st.session_state.pronos, use_container_width=True)
 
-elif menu == "Classement":
-  st.header("Classement General")
+elif menu == "🏆 Classement":
+  st.header("🏆 Classement Général")
   p_pronos_sum = (
       st.session_state.pronos.groupby("Participant")["Points"]
       .sum()
@@ -177,8 +181,8 @@ elif menu == "Classement":
   else:
     st.info("Classement vide.")
 
-elif menu == "Espace Admin":
-  st.header("Espace Organisateur")
+elif menu == "⚙️ Espace Admin":
+  st.header("🔐 Espace Organisateur")
   mdp = st.text_input("Mot de passe :", type="password")
   if mdp == MOT_DE_PASSE_ADMIN:
     st.success("Connecté !")
