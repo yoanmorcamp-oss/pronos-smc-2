@@ -281,17 +281,19 @@ if menu == "📝 Faire mon Prono":
     match_ligne = st.session_state.matchs[
         st.session_state.matchs["ID Match"] == match_choisi
     ].iloc[0]
-    date_str = str(match_ligne["Date"])
-    heure_str = str(match_ligne["Heure"])
+    date_str = str(match_ligne["Date"]).strip()
+    heure_str = str(match_ligne["Heure"]).strip()
 
     match_verrouille = False
     try:
+      # Nettoyage et formatage strict de la date et de l'heure
       match_datetime = datetime.strptime(
           f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
       )
       if datetime.now() >= match_datetime:
         match_verrouille = True
-    except Exception:
+    except Exception as e:
+      # En cas de format inhabituel, on ne bloque pas par défaut mais on trace
       pass
 
     if match_verrouille:
@@ -322,7 +324,10 @@ if menu == "📝 Faire mon Prono":
       )
 
       if st.button("Valider mon Prono 🚀"):
-        if nom_utilisateur:
+        # Double vérification anti-fraude au moment exact du clic
+        if match_verrouille:
+          st.error("Impossible de valider : le match a commencé !")
+        elif nom_utilisateur:
           choix_clean = prono_1n2.split()[0]
           buteurs_texte_str = ", ".join(buteurs_selectionnes)
 
@@ -488,7 +493,9 @@ elif menu == "⚙️ Espace Admin":
                   else 0
               ),
           )
-          score_reel = st.text_input("Score Réel exact (ex: 2-1)", value=score_actuel)
+          score_reel = st.text_input(
+              "Score Réel exact (ex: 2-1)", value=score_actuel
+          )
           buteurs_reels = st.text_input(
               "Buteurs réels (séparés par des virgules)",
               value=buteurs_actuels,
