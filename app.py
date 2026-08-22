@@ -498,7 +498,6 @@ elif menu == "⚙️ Espace Admin":
           score_actuel = str(match_ligne["Score Réel"])
           buteurs_actuels_str = str(match_ligne["Buteurs"])
 
-          # Création du dictionnaire pour l'affichage clair dans le selectbox
           options_dict = {
               "": "",
               "1": f"Victoire de Caen (1)",
@@ -522,7 +521,6 @@ elif menu == "⚙️ Espace Admin":
               "Score Réel exact (ex: 2-1)", value=score_actuel
           )
 
-          # Sélection des buteurs réels via l'effectif SMC
           buteurs_deja_enregistres = [
               b.strip() for b in buteurs_actuels_str.split(",") if b.strip()
           ]
@@ -571,6 +569,34 @@ elif menu == "⚙️ Espace Admin":
 
     st.subheader("Liste des matchs actuels")
     st.dataframe(st.session_state.matchs, use_container_width=True)
+
+    # --- SECTION SUPPRESSION DE MATCH ---
+    if not st.session_state.matchs.empty:
+      st.markdown("---")
+      st.subheader("🗑️ Supprimer un Match")
+      match_a_supprimer = st.selectbox(
+          "Choisir le match à supprimer",
+          st.session_state.matchs["ID Match"].tolist(),
+          key="select_suppr_match",
+      )
+      if st.button("Supprimer ce match définitivement ❌"):
+        # Supprime le match de la liste
+        st.session_state.matchs = st.session_state.matchs[
+            st.session_state.matchs["ID Match"] != match_a_supprimer
+        ].reset_index(drop=True)
+
+        # Nettoie aussi les pronos liés à ce match pour éviter les bugs
+        if not st.session_state.pronos.empty:
+          st.session_state.pronos = st.session_state.pronos[
+              st.session_state.pronos["Match"] != match_a_supprimer
+          ].reset_index(drop=True)
+
+        sauvegarder_donnees()
+        st.success(
+            f"Le match '{match_a_supprimer}' et ses pronos associés ont bien"
+            " été supprimés !"
+        )
+        st.rerun()
 
   elif mdp != "":
     st.error("Mot de passe incorrect.")
