@@ -259,6 +259,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- AFFICHAGE DU LOGO (Centré en haut) ---
+col1, col2, col3 = st.columns([1, 1, 1])
+with col2:
+  # Remplaces 'url_ou_chemin_vers_ton_logo.png' par le chemin local ou l'URL de ton logo
+  try:
+    st.image(
+        "C:\Users\yoanm\Desktop\appli prono caen", width=150
+    )  # Ajuste la largeur si besoin
+  except Exception:
+    pass  # Évite un plantage si l'image n'est pas encore téléchargée
+
 st.markdown(
     "<h1 style='text-align: center;'>🔴🔵 CONCOURS DE PRONOS - SMC"
     " 🔵🔴</h1>",
@@ -433,7 +444,6 @@ if menu == "📝 Faire mon Prono":
 
   if not st.session_state.pronos.empty:
     st.subheader("📋 Tous les pronos enregistrés")
-    # On cache uniquement la colonne "Points" pour l'affichage visuel, sans toucher au calcul
     colonnes_visibles = [
         col for col in st.session_state.pronos.columns if col != "Points"
     ]
