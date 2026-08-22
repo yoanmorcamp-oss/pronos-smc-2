@@ -70,7 +70,7 @@ def calculer_points():
       buteurs_reels = str(match_info.iloc[0]["Buteurs"]).lower()
 
       points = 0
-      prono_1n2 = str(p["Prono (1N2)]").strip()
+      prono_1n2 = str(p["Prono (1N2)"]).strip()
       prono_score = str(p["Score"]).strip()
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
