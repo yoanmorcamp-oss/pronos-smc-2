@@ -1,3 +1,5 @@
+import base64
+from datetime import datetime
 import pandas as pd
 import streamlit as st
 
@@ -20,6 +22,7 @@ EFFECTIF_SMC = [
     "Fahd El Khoumisti",
 ]
 
+# --- INITIALISATION DE LA MÉMOIRE (SESSION STATE) ---
 if "matchs" not in st.session_state:
   st.session_state.matchs = pd.DataFrame(
       columns=[
@@ -49,7 +52,52 @@ if "pronos" not in st.session_state:
 if "bonus" not in st.session_state:
   st.session_state.bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
 
-# --- DESIGN & UI (Correction de la visibilité du texte dans le menu) ---
+
+# --- FONCTION DE CALCUL DES POINTS ---
+def calculer_points():
+  if st.session_state.pronos.empty or st.session_state.matchs.empty:
+    return
+
+  for idx, p in st.session_state.pronos.iterrows():
+    match_id = p["Match"]
+    match_info = st.session_state.matchs[
+        st.session_state.matchs["ID Match"] == match_id
+    ]
+
+    if not match_info.empty:
+      res_reel = str(match_info.iloc[0]["Résultat"]).strip()
+      score_reel = str(match_info.iloc[0]["Score Réel"]).strip()
+      buteurs_reels = str(match_info.iloc[0]["Buteurs"]).lower()
+
+      points = 0
+      prono_1n2 = str(p["Prono (1N2)]").strip()
+      prono_score = str(p["Score"]).strip()
+      p_buteur = str(p["Buteur"]).strip()
+      p_double = str(p["Doublé ?"]).strip()
+
+      # 1. Bon 1N2 (3 points)
+      if res_reel and prono_1n2 == res_reel:
+        points += 3
+
+      # 2. Bon score exact (5 points bonus)
+      if score_reel and prono_score == score_reel:
+        points += 5
+
+      # 3. Buteur trouvé (2 points par buteur)
+      if buteurs_reels and p_buteur:
+        buteurs_choisis = [b.strip() for b in p_buteur.split(",")]
+        for b in buteurs_choisis:
+          if b.lower() in buteurs_reels:
+            points += 2
+
+      # 4. Doublé trouvé (3 points bonus)
+      if p_double != "Aucun" and p_double.lower() in buteurs_reels:
+        points += 3
+
+      st.session_state.pronos.loc[idx, "Points"] = points
+
+
+# --- DESIGN & UI ---
 st.markdown("""
     <style>
     .stApp { background-color: #f4f6f9; color: #002D62; }
@@ -67,7 +115,12 @@ st.title("⚽ Concours de Pronos - SMC")
 
 menu = st.sidebar.radio(
     "🧭 Navigation",
-    ["📝 Faire mon Prono", "🏆 Classement", "⚙️ Espace Admin"],
+    [
+        "📝 Faire mon Prono",
+        "🏆 Classement",
+        "👥 Participants & Bonus",
+        "⚙️ Espace Admin",
+    ],
 )
 
 
@@ -90,10 +143,13 @@ def obtenir_liste_participants():
   return sorted(list(tous))
 
 
+# --- ONGLET 1 : FAIRE MON PRONO ---
 if menu == "📝 Faire mon Prono":
   st.header("🎯 Enregistrer ton Pronostic")
   if st.session_state.matchs.empty:
-    st.info("Aucun match ouvert pour l'instant.")
+    st.info(
+        "Aucun match ouvert pour l'instant. Demande à l'admin d'en ajouter un !"
+    )
   else:
     matchs_disponibles = st.session_state.matchs["ID Match"].tolist()
     choix_participant = st.selectbox(
@@ -120,7 +176,7 @@ if menu == "📝 Faire mon Prono":
     )
 
     if st.button("Valider 🚀"):
-      if nom_utilisateur and buteurs_selectionnes:
+      if nom_utilisateur:
         choix_clean = prono_1n2.split()[0]
         buteurs_texte_str = ", ".join(buteurs_selectionnes)
 
@@ -148,14 +204,21 @@ if menu == "📝 Faire mon Prono":
               [st.session_state.pronos, new_row], ignore_index=True
           )
 
-        st.success("Prono enregistré !")
+        calculer_points()
+        st.success("Prono enregistré avec succès !")
         st.rerun()
+      else:
+        st.error("Merci d'indiquer un pseudo.")
 
   if not st.session_state.pronos.empty:
+    st.subheader("📋 Tous les pronos enregistrés")
     st.dataframe(st.session_state.pronos, use_container_width=True)
 
+# --- ONGLET 2 : CLASSEMENT ---
 elif menu == "🏆 Classement":
   st.header("🏆 Classement Général")
+  calculer_points()
+
   p_pronos_sum = (
       st.session_state.pronos.groupby("Participant")["Points"]
       .sum()
@@ -163,6 +226,7 @@ elif menu == "🏆 Classement":
       if not st.session_state.pronos.empty
       else pd.DataFrame(columns=["Participant", "Points"])
   )
+
   if not p_pronos_sum.empty or not st.session_state.bonus.empty:
     classement_complet = pd.merge(
         p_pronos_sum, st.session_state.bonus, on="Participant", how="outer"
@@ -172,45 +236,125 @@ elif menu == "🏆 Classement":
         + classement_complet["Points Bonus"].astype(float)
     )
     classement_final = (
-        classement_complet[["Participant", "Points Total"]]
+        classement_complet[["Participant", "Points Total", "Points Bonus"]]
         .sort_values(by="Points Total", ascending=False)
         .reset_index(drop=True)
     )
     classement_final.index += 1
     st.dataframe(classement_final, use_container_width=True)
   else:
-    st.info("Classement vide.")
+    st.info("Le classement est vide pour le moment.")
 
+# --- ONGLET 3 : PARTICIPANTS & BONUS ---
+elif menu == "👥 Participants & Bonus":
+  st.header("👥 Gestion des Participants & Bonus")
+  st.write("Participants initiaux :", ", ".join(PARTICIPANTS_INITIAUX))
+
+  st.subheader("Attribution de points bonus (Admin / Spécial)")
+  with st.form("f_bonus"):
+    p_choisi = st.selectbox("Participant", obtenir_liste_participants())
+    pts_bonus = st.number_input("Points Bonus à ajouter", value=0, step=1)
+    if st.form_submit_button("Valider le bonus"):
+      existing_b = st.session_state.bonus[
+          st.session_state.bonus["Participant"] == p_choisi
+      ].index
+      if not existing_b.empty:
+        st.session_state.bonus.loc[existing_b[0], "Points Bonus"] += pts_bonus
+      else:
+        new_b = pd.DataFrame(
+            {"Participant": [p_choisi], "Points Bonus": [pts_bonus]}
+        )
+        st.session_state.bonus = pd.concat(
+            [st.session_state.bonus, new_b], ignore_index=True
+        )
+      st.success("Bonus mis à jour !")
+      st.rerun()
+
+  if not st.session_state.bonus.empty:
+    st.dataframe(st.session_state.bonus, use_container_width=True)
+
+# --- ONGLET 4 : ESPACE ADMIN ---
 elif menu == "⚙️ Espace Admin":
   st.header("🔐 Espace Organisateur")
-  mdp = st.text_input("Mot de passe :", type="password")
+  mdp = st.text_input("Mot de passe administrateur :", type="password")
+
   if mdp == MOT_DE_PASSE_ADMIN:
-    st.success("Connecté !")
-    with st.form("f_match"):
-      id_m = st.text_input("Nom du Match (ex: SMC - Bastia)")
-      adv = st.text_input("Adversaire")
-      res = st.selectbox("Résultat Réel", ["", "1", "N", "2"])
-      sc_r = st.text_input("Score Réel (ex: 2-1)")
-      but_r = st.text_input("Buteurs réels")
-      if st.form_submit_button("Enregistrer Match"):
-        if id_m:
-          st.session_state.matchs = pd.concat(
-              [
-                  st.session_state.matchs,
-                  pd.DataFrame({
-                      "ID Match": [id_m],
-                      "Adversaire": [adv],
-                      "Date": ["2026-08-25"],
-                      "Heure": ["20:00"],
-                      "Résultat": [res],
-                      "Score Réel": [sc_r],
-                      "Buteurs": [but_r],
-                  }),
-              ],
-              ignore_index=True,
+    st.success("Accès autorisé !")
+
+    tab_m, tab_res = st.tabs(["➕ Ajouter un Match", "⚽ Saisir les Résultats"])
+
+    with tab_m:
+      with st.form("f_match"):
+        id_m = st.text_input("Nom du Match (ex: SMC - Bastia)")
+        adv = st.text_input("Adversaire")
+        date_m = st.date_input("Date du match")
+        if st.form_submit_button("Créer le match"):
+          if id_m:
+            st.session_state.matchs = pd.concat(
+                [
+                    st.session_state.matchs,
+                    pd.DataFrame({
+                        "ID Match": [id_m],
+                        "Adversaire": [adv],
+                        "Date": [str(date_m)],
+                        "Heure": ["20:00"],
+                        "Résultat": [""],
+                        "Score Réel": [""],
+                        "Buteurs": [""],
+                    }),
+                ],
+                ignore_index=True,
+            )
+            st.success("Match créé avec succès !")
+            st.rerun()
+
+    with tab_res:
+      if st.session_state.matchs.empty:
+        st.info("Aucun match à renseigner.")
+      else:
+        match_a_maj = st.selectbox(
+            "Sélectionner le match terminé",
+            st.session_state.matchs["ID Match"].tolist(),
+        )
+        match_ligne = st.session_state.matchs[
+            st.session_state.matchs["ID Match"] == match_a_maj
+        ].iloc[0]
+
+        with st.form("f_resultat"):
+          res_reel = st.selectbox(
+              "Vainqueur Réel",
+              ["", "1", "N", "2"],
+              index=(
+                  ["", "1", "N", "2"].index(match_ligne["Résultat"])
+                  if match_ligne["Résultat"] in ["", "1", "N", "2"]
+                  else 0
+              ),
           )
-          st.success("Match ajouté !")
-          st.rerun()
+          score_reel = st.text_input(
+              "Score Réel exact (ex: 2-1)", value=match_ligne["Score Réel"]
+          )
+          buteurs_reels = st.text_input(
+              "Buteurs réels (séparés par des virgules)",
+              value=match_ligne["Buteurs"],
+          )
+
+          if st.form_submit_button("Enregistrer les résultats et calculer"):
+            idx_m = st.session_state.matchs[
+                st.session_state.matchs["ID Match"] == match_a_maj
+            ].index[0]
+            st.session_state.matchs.loc[idx_m, "Résultat"] = res_reel
+            st.session_state.matchs.loc[idx_m, "Score Réel"] = score_reel
+            st.session_state.matchs.loc[idx_m, "Buteurs"] = buteurs_reels
+
+            calculer_points()
+            st.success(
+                "Résultats enregistrés et points recalculés pour tout le"
+                " monde !"
+            )
+            st.rerun()
+
+    st.subheader("Liste des matchs actuels")
     st.dataframe(st.session_state.matchs, use_container_width=True)
+
   elif mdp != "":
     st.error("Mot de passe incorrect.")
