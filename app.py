@@ -39,7 +39,7 @@ EFFECTIF_SMC = [
 ]
 
 
-# --- GESTION DE LA PERSISTANCE (SAUVEGARDE FICHIER SÉCURISÉE) ---
+# --- GESTION DE LA PERSISTANCE ---
 def charger_donnees():
   if os.path.exists(FICHIER_DONNEES):
     try:
@@ -74,7 +74,67 @@ def sauvegarder_donnees():
     df_global.to_csv(FICHIER_DONNEES, index=False)
 
 
-# --- INITIALISATION DE LA MÉMOIRE (SESSION STATE) ---
+# --- FONCTION DE CALCUL ULTRA-SOUPLE ---
+def calculer_points():
+  if st.session_state.pronos.empty or st.session_state.matchs.empty:
+    return
+
+  for idx, p in st.session_state.pronos.iterrows():
+    match_id = str(p["Match"]).strip()
+    match_info = st.session_state.matchs[
+        st.session_state.matchs["ID Match"].str.strip() == match_id
+    ]
+
+    if not match_info.empty:
+      row = match_info.iloc[0]
+      res_reel = str(row["Résultat"]).strip()
+      # On nettoie les scores en enlevant tous les espaces et tirets bizarres pour comparer facilement (ex: "2-1" ou "2 - 1")
+      score_reel = (
+          str(row["Score Réel"]).strip().replace(" ", "").replace("–", "-")
+      )
+      buteurs_reels = str(row["Buteurs"]).lower().strip()
+
+      points = 0
+      prono_1n2 = str(p["Prono (1N2)"]).strip()
+      prono_score = (
+          str(p["Score"]).strip().replace(" ", "").replace("–", "-")
+      )
+      p_buteur = str(p["Buteur"]).strip()
+      p_double = str(p["Doublé ?"]).strip()
+
+      # 1. Test Résultat 1N2 (3 pts)
+      if res_reel and prono_1n2 == res_reel:
+        points += 3
+
+      # 2. Test Score Exact (5 pts)
+      if score_reel and prono_score == score_reel:
+        points += 5
+
+      # 3. Test Buteurs (2 pts par buteur)
+      if buteurs_reels and p_buteur and p_buteur != "nan":
+        buteurs_choisis = [b.strip() for b in p_buteur.split(",") if b.strip()]
+        for b in buteurs_choisis:
+          # On vérifie si le nom du joueur est inclus dans la liste des buteurs réels
+          if b.lower() in buteurs_reels:
+            points += 2
+
+      # 4. Test Doublé (3 pts)
+      if (
+          p_double
+          and p_double != "Aucun"
+          and p_double != "nan"
+          and p_double.lower() in buteurs_reels
+      ):
+        points += 3
+
+      st.session_state.pronos.loc[idx, "Points"] = int(points)
+    else:
+      st.session_state.pronos.loc[idx, "Points"] = 0
+
+  sauvegarder_donnees()
+
+
+# --- INITIALISATION SESSION STATE ---
 if "donnees_chargees" not in st.session_state:
   df_load = charger_donnees()
 
@@ -126,7 +186,7 @@ if "donnees_chargees" not in st.session_state:
 
   st.session_state.donnees_chargees = True
 
-# Forçage des types de colonnes
+# Sécurisation des colonnes
 for col in [
     "ID Match",
     "Adversaire",
@@ -172,49 +232,8 @@ st.session_state.bonus["Points Bonus"] = (
     .astype(int)
 )
 
-
-# --- FONCTION DE CALCUL DES POINTS SÉCURISÉE ---
-def calculer_points():
-  if st.session_state.pronos.empty or st.session_state.matchs.empty:
-    return
-
-  for idx, p in st.session_state.pronos.iterrows():
-    match_id = str(p["Match"])
-    match_info = st.session_state.matchs[
-        st.session_state.matchs["ID Match"] == match_id
-    ]
-
-    if not match_info.empty:
-      row = match_info.iloc[0]
-      res_reel = str(row["Résultat"]).strip()
-      score_reel = str(row["Score Réel"]).strip()
-      buteurs_reels = str(row["Buteurs"]).lower()
-
-      points = 0
-      prono_1n2 = str(p["Prono (1N2)"]).strip()
-      prono_score = str(p["Score"]).strip()
-      p_buteur = str(p["Buteur"]).strip()
-      p_double = str(p["Doublé ?"]).strip()
-
-      if res_reel and prono_1n2 == res_reel:
-        points += 3
-      if score_reel and prono_score == score_reel:
-        points += 5
-      if buteurs_reels and p_buteur:
-        buteurs_choisis = [b.strip() for b in p_buteur.split(",")]
-        for b in buteurs_choisis:
-          if b != "Autre" and b.lower() in buteurs_reels:
-            points += 2
-      if (
-          p_double != "Aucun"
-          and p_double != "Autre"
-          and p_double.lower() in buteurs_reels
-      ):
-        points += 3
-
-      st.session_state.pronos.loc[idx, "Points"] = int(points)
-  sauvegarder_donnees()
-
+# Calcul automatique des points au démarrage
+calculer_points()
 
 # --- DESIGN & UI ---
 st.markdown("""
@@ -337,9 +356,23 @@ if menu == "📝 Faire mon Prono":
       )
 
       if st.button("Valider mon Prono 🚀"):
-        if match_verrouille:
-          st.error("Impossible de valider : le match a commencé !")
-        elif nom_utilisateur:
+        verification_actuelle = False
+        try:
+          if datetime.now() >= datetime.strptime(
+              f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
+          ):
+            verification_actuelle = True
+        except Exception:
+          pass
+
+        if verification_actuelle:
+          st.error(
+              "❌ Impossible de valider : le match a déjà commencé ou l'heure"
+              " est dépassée !"
+          )
+        elif not nom_utilisateur:
+          st.error("Merci d'indiquer un pseudo.")
+        else:
           choix_clean = str(prono_1n2.split()[0])
           buteurs_texte_str = str(", ".join(buteurs_selectionnes))
 
@@ -372,8 +405,6 @@ if menu == "📝 Faire mon Prono":
           sauvegarder_donnees()
           st.success("Prono enregistré avec succès !")
           st.rerun()
-        else:
-          st.error("Merci d'indiquer un pseudo.")
 
   if not st.session_state.pronos.empty:
     st.subheader("📋 Tous les pronos enregistrés")
@@ -580,17 +611,16 @@ elif menu == "⚙️ Espace Admin":
           key="select_suppr_match",
       )
       if st.button("Supprimer ce match définitivement ❌"):
-        # Supprime le match de la liste
         st.session_state.matchs = st.session_state.matchs[
             st.session_state.matchs["ID Match"] != match_a_supprimer
         ].reset_index(drop=True)
 
-        # Nettoie aussi les pronos liés à ce match pour éviter les bugs
         if not st.session_state.pronos.empty:
           st.session_state.pronos = st.session_state.pronos[
               st.session_state.pronos["Match"] != match_a_supprimer
           ].reset_index(drop=True)
 
+        calculer_points()
         sauvegarder_donnees()
         st.success(
             f"Le match '{match_a_supprimer}' et ses pronos associés ont bien"
