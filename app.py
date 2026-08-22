@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 st.set_page_config(
     page_title="Pronos SMC - Saison 2026-2027",
-    page_icon="icone.png",
+    page_icon="logo.png",
     layout="wide",
 )
 
@@ -265,11 +265,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# AFFICHAGE DU LOGO
+# AFFICHAGE DU LOGO (ici on remet ton logo d'origine pour l'appli, ex: logo.png)
 col1, col2, col3 = st.columns([1, 1, 1])
 with col2:
   try:
-    st.image("icone.png", width=150)
+    st.image("logo.png", width=150)
   except Exception:
     pass
 
