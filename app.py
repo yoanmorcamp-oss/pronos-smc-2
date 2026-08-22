@@ -126,7 +126,7 @@ if "donnees_chargees" not in st.session_state:
 
   st.session_state.donnees_chargees = True
 
-# Forçage des types de colonnes en string pour éviter les conflits de types
+# Forçage des types de colonnes
 for col in [
     "ID Match",
     "Adversaire",
@@ -154,9 +154,11 @@ for col in [
 
 if "Points" not in st.session_state.pronos.columns:
   st.session_state.pronos["Points"] = 0
-st.session_state.pronos["Points"] = pd.to_numeric(
-    st.session_state.pronos["Points"], errors="fillna"
-).fillna(0)
+st.session_state.pronos["Points"] = (
+    pd.to_numeric(st.session_state.pronos["Points"], errors="coerce")
+    .fillna(0)
+    .astype(int)
+)
 
 for col in ["Participant"]:
   if col not in st.session_state.bonus.columns:
@@ -164,6 +166,11 @@ for col in ["Participant"]:
   st.session_state.bonus[col] = st.session_state.bonus[col].astype(str)
 if "Points Bonus" not in st.session_state.bonus.columns:
   st.session_state.bonus["Points Bonus"] = 0
+st.session_state.bonus["Points Bonus"] = (
+    pd.to_numeric(st.session_state.bonus["Points Bonus"], errors="coerce")
+    .fillna(0)
+    .astype(int)
+)
 
 
 # --- FONCTION DE CALCUL DES POINTS SÉCURISÉE ---
@@ -392,7 +399,7 @@ elif menu == "🏆 Classement":
     ).fillna(0)
     classement_complet["Points Total"] = classement_complet[
         "Points"
-    ] + classement_complet["Points Bonus"].astype(float)
+    ] + classement_complet["Points Bonus"].astype(int)
     classement_final = (
         classement_complet[["Participant", "Points Total", "Points Bonus"]]
         .sort_values(by="Points Total", ascending=False)
@@ -419,10 +426,10 @@ elif menu == "👥 Participants & Bonus":
       if not existing_b.empty:
         st.session_state.bonus.loc[
             existing_b[0], "Points Bonus"
-        ] += pts_bonus
+        ] += int(pts_bonus)
       else:
         new_b = pd.DataFrame(
-            {"Participant": [p_choisi], "Points Bonus": [pts_bonus]}
+            {"Participant": [p_choisi], "Points Bonus": [int(pts_bonus)]}
         )
         st.session_state.bonus = pd.concat(
             [st.session_state.bonus, new_b], ignore_index=True
