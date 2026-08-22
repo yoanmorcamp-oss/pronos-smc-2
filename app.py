@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 from zoneinfo import ZoneInfo
 
-# ---> C'est ici qu'on met ton logo pour l'icône de l'app / onglet / raccourci téléphone <---
 st.set_page_config(
     page_title="Pronos SMC - Saison 2026-2027",
     page_icon="icone.png",
@@ -97,7 +96,6 @@ def calculer_points():
       )
       buteurs_reels_brut = str(row["Buteurs"]).strip()
 
-      # Analyse des buts réels par joueur pour compter les doublés
       buteurs_reels_liste = [
           b.strip().lower()
           for b in buteurs_reels_brut.split(",")
@@ -115,32 +113,28 @@ def calculer_points():
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
 
-      # 1. Test Résultat 1N2 (2 pts)
       if res_reel and prono_1n2 == res_reel:
         points += 2
 
-      # 2. Test Score Exact (10 pts)
       if score_reel and prono_score == score_reel:
         points += 10
 
-      # 3. Test Buteurs (3 pts une seule fois par buteur trouvé)
       buteurs_choisis = [
           b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
       ]
       for b in buteurs_choisis:
         b_lower = b.lower()
         if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
-          points += 3  # 3 pts uniques pour le but
+          points += 3
 
-      # 4. Test Doublé (+5 pts si réussi, -3 pts si raté en ayant annoncé un doublé)
       if p_double and p_double != "Aucun" and p_double != "nan":
         joueur_double_annonce = p_double.lower()
         buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
 
         if buts_du_joueur >= 2:
-          points += 5  # Doublé réussi
+          points += 5
         else:
-          points -= 3  # Doublé raté
+          points -= 3
 
       st.session_state.pronos.loc[idx, "Points"] = int(points)
     else:
@@ -201,7 +195,6 @@ if "donnees_chargees" not in st.session_state:
 
   st.session_state.donnees_chargees = True
 
-# Sécurisation des colonnes
 for col in [
     "ID Match",
     "Adversaire",
@@ -247,7 +240,6 @@ st.session_state.bonus["Points Bonus"] = (
     .astype(int)
 )
 
-# Calcul automatique des points au démarrage
 calculer_points()
 
 # --- DESIGN & UI ---
@@ -341,7 +333,6 @@ if menu == "📝 Faire mon Prono":
     date_str = str(match_ligne["Date"]).strip()
     heure_str = str(match_ligne["Heure"]).strip()
 
-    # Vérification précise du verrouillage avec l'heure de Paris
     match_verrouille = False
     try:
       tz_paris = ZoneInfo("Europe/Paris")
@@ -654,7 +645,7 @@ elif menu == "⚙️ Espace Admin":
     st.subheader("Liste des matchs actuels")
     st.dataframe(st.session_state.matchs, use_container_width=True)
 
-    // --- SECTION SUPPRESSION DE MATCH ---
+    # --- SECTION SUPPRESSION DE MATCH ---
     if not st.session_state.matchs.empty:
       st.markdown("---")
       st.subheader("🗑️ Supprimer un Match")
