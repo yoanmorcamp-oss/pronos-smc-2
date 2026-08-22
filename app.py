@@ -11,7 +11,6 @@ MOT_DE_PASSE_ADMIN = "yoan"
 
 PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
 
-# EFFECTIF COMPLET SMC 2026-2027 + "Autre"
 EFFECTIF_SMC = [
     "Anthony Mandréa",
     "Yannis Clémentia",
@@ -181,65 +180,87 @@ if menu == "📝 Faire mon Prono":
     )
     match_choisi = st.selectbox("Match", matchs_disponibles)
 
-    col1, col2 = st.columns(2)
-    with col1:
-      prono_1n2 = st.selectbox(
-          "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
+    # Vérification du verrouillage selon la date et l'heure du match
+    match_ligne = st.session_state.matchs[
+        st.session_state.matchs["ID Match"] == match_choisi
+    ].iloc[0]
+    date_str = str(match_ligne["Date"])
+    heure_str = str(match_ligne["Heure"])
+
+    match_verrouille = False
+    try:
+      match_datetime = datetime.strptime(
+          f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
       )
-      prono_score = st.text_input("Score exact (ex: 2-0)")
-    with col2:
-      buteurs_selectionnes = st.multiselect("Buteurs", EFFECTIF_SMC)
+      if datetime.now() >= match_datetime:
+        match_verrouille = True
+    except Exception:
+      pass
 
-    # Si "Autre" est sélectionné, on propose de préciser le nom du joueur
-    if "Autre" in buteurs_selectionnes:
-      autre_buteur_saisi = st.text_input(
-          "Préciser le nom du joueur (si 'Autre' sélectionné) :"
+    if match_verrouille:
+      st.error(
+          "⏳ Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
+          " sont verrouillés pour cette rencontre !"
       )
-      if autre_buteur_saisi:
-        buteurs_selectionnes = [
-            b if b != "Autre" else autre_buteur_saisi
-            for b in buteurs_selectionnes
-        ]
+    else:
+      col1, col2 = st.columns(2)
+      with col1:
+        prono_1n2 = st.selectbox(
+            "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
+        )
+        prono_score = st.text_input("Score exact (ex: 2-0)")
+      with col2:
+        buteurs_selectionnes = st.multiselect("Buteurs", EFFECTIF_SMC)
 
-    options_double = ["Aucun"] + buteurs_selectionnes
-    annonce_double = st.selectbox(
-        "Doublé ?", options_double if options_double else ["Aucun"]
-    )
+      if "Autre" in buteurs_selectionnes:
+        autre_buteur_saisi = st.text_input(
+            "Préciser le nom du joueur (si 'Autre' sélectionné) :"
+        )
+        if autre_buteur_saisi:
+          buteurs_selectionnes = [
+              b if b != "Autre" else autre_buteur_saisi
+              for b in buteurs_selectionnes
+          ]
 
-    if st.button("Valider 🚀"):
-      if nom_utilisateur:
-        choix_clean = prono_1n2.split()[0]
-        buteurs_texte_str = ", ".join(buteurs_selectionnes)
+      options_double = ["Aucun"] + buteurs_selectionnes
+      annonce_double = st.selectbox(
+          "Doublé ?", options_double if options_double else ["Aucun"]
+      )
 
-        existing_idx = st.session_state.pronos[
-            (st.session_state.pronos["Participant"] == nom_utilisateur)
-            & (st.session_state.pronos["Match"] == match_choisi)
-        ].index
-        if not existing_idx.empty:
-          idx = existing_idx[0]
-          st.session_state.pronos.loc[idx, "Prono (1N2)"] = choix_clean
-          st.session_state.pronos.loc[idx, "Score"] = prono_score
-          st.session_state.pronos.loc[idx, "Buteur"] = buteurs_texte_str
-          st.session_state.pronos.loc[idx, "Doublé ?"] = annonce_double
+      if st.button("Valider 🚀"):
+        if nom_utilisateur:
+          choix_clean = prono_1n2.split()[0]
+          buteurs_texte_str = ", ".join(buteurs_selectionnes)
+
+          existing_idx = st.session_state.pronos[
+              (st.session_state.pronos["Participant"] == nom_utilisateur)
+              & (st.session_state.pronos["Match"] == match_choisi)
+          ].index
+          if not existing_idx.empty:
+            idx = existing_idx[0]
+            st.session_state.pronos.loc[idx, "Prono (1N2)"] = choix_clean
+            st.session_state.pronos.loc[idx, "Score"] = prono_score
+            st.session_state.pronos.loc[idx, "Buteur"] = buteurs_texte_str
+            st.session_state.pronos.loc[idx, "Doublé ?"] = annonce_double
+          else:
+            new_row = pd.DataFrame({
+                "Participant": [nom_utilisateur],
+                "Match": [match_choisi],
+                "Prono (1N2)": [choix_clean],
+                "Score": [prono_score],
+                "Buteur": [buteurs_texte_str],
+                "Doublé ?": [annonce_double],
+                "Points": [0],
+            })
+            st.session_state.pronos = pd.concat(
+                [st.session_state.pronos, new_row], ignore_index=True
+            )
+
+          calculer_points()
+          st.success("Prono enregistré avec succès !")
+          st.rerun()
         else:
-          new_row = pd.DataFrame({
-              "Participant": [nom_utilisateur],
-              "Match": [match_choisi],
-              "Prono (1N2)": [choix_clean],
-              "Score": [prono_score],
-              "Buteur": [buteurs_texte_str],
-              "Doublé ?": [annonce_double],
-              "Points": [0],
-          })
-          st.session_state.pronos = pd.concat(
-              [st.session_state.pronos, new_row], ignore_index=True
-          )
-
-        calculer_points()
-        st.success("Prono enregistré avec succès !")
-        st.rerun()
-      else:
-        st.error("Merci d'indiquer un pseudo.")
+          st.error("Merci d'indiquer un pseudo.")
 
   if not st.session_state.pronos.empty:
     st.subheader("📋 Tous les pronos enregistrés")
@@ -319,6 +340,7 @@ elif menu == "⚙️ Espace Admin":
         id_m = st.text_input("Nom du Match (ex: SMC - Bastia)")
         adv = st.text_input("Adversaire")
         date_m = st.date_input("Date du match")
+        heure_m = st.time_input("Heure du match")
         if st.form_submit_button("Créer le match"):
           if id_m:
             st.session_state.matchs = pd.concat(
@@ -328,7 +350,7 @@ elif menu == "⚙️ Espace Admin":
                         "ID Match": [id_m],
                         "Adversaire": [adv],
                         "Date": [str(date_m)],
-                        "Heure": ["20:00"],
+                        "Heure": [heure_m.strftime("%H:%M")],
                         "Résultat": [""],
                         "Score Réel": [""],
                         "Buteurs": [""],
@@ -336,7 +358,7 @@ elif menu == "⚙️ Espace Admin":
                 ],
                 ignore_index=True,
             )
-            st.success("Match créé avec succès !")
+            st.success("Match créé avec succès et verrouillage programmé !")
             st.rerun()
 
     with tab_res:
@@ -379,8 +401,8 @@ elif menu == "⚙️ Espace Admin":
 
             calculer_points()
             st.success(
-                "Résultats enregistrés et points recalculés pour tout le"
-                " monde !"
+                "Résultats enregistrés et points recalculés automatiquement"
+                " pour tout le monde !"
             )
             st.rerun()
 
