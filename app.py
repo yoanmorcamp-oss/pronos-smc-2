@@ -39,33 +39,20 @@ EFFECTIF_SMC = [
 ]
 
 
-# --- GESTION DE LA PERSISTANCE (SAUVEGARDE FICHIER) ---
+# --- GESTION DE LA PERSISTANCE (SAUVEGARDE FICHIER SÉCURISÉE) ---
 def charger_donnees():
   if os.path.exists(FICHIER_DONNEES):
     try:
-      return pd.read_csv(FICHIER_DONNEES)
+      df = pd.read_csv(FICHIER_DONNEES)
+      # Vérification de sécurité : si le fichier ne contient pas la colonne Type ou Participant, on le supprime pour éviter le bug
+      if "Type" not in df.columns or "Participant" not in df.columns:
+        os.remove(FICHIER_DONNEES)
+        return pd.DataFrame()
+      return df
     except Exception:
-      pass
-  return pd.DataFrame(
-      columns=[
-          "Type",
-          "ID Match",
-          "Adversaire",
-          "Date",
-          "Heure",
-          "Résultat",
-          "Score Réel",
-          "Buteurs",
-          "Participant",
-          "Match",
-          "Prono (1N2)",
-          "Score",
-          "Buteur",
-          "Doublé ?",
-          "Points",
-          "Points Bonus",
-      ]
-  )
+      if os.path.exists(FICHIER_DONNEES):
+        os.remove(FICHIER_DONNEES)
+  return pd.DataFrame()
 
 
 def sauvegarder_donnees():
@@ -91,23 +78,80 @@ def sauvegarder_donnees():
 # --- INITIALISATION DE LA MÉMOIRE (SESSION STATE) ---
 if "donnees_chargees" not in st.session_state:
   df_load = charger_donnees()
-  
+
   if not df_load.empty and "Type" in df_load.columns:
-    st.session_state.matchs = df_load[df_load["Type"] == "MATCH"].drop(columns=["Type"], errors="ignore").dropna(how="all", axis=1).reset_index(drop=True)
-    st.session_state.pronos = df_load[df_load["Type"] == "PRONO"].drop(columns=["Type"], errors="ignore").dropna(how="all", axis=1).reset_index(drop=True)
-    st.session_state.bonus = df_load[df_load["Type"] == "BONUS"].drop(columns=["Type"], errors="ignore").dropna(how="all", axis=1).reset_index(drop=True)
+    st.session_state.matchs = (
+        df_load[df_load["Type"] == "MATCH"]
+        .drop(columns=["Type"], errors="ignore")
+        .dropna(how="all", axis=1)
+        .reset_index(drop=True)
+    )
+    st.session_state.pronos = (
+        df_load[df_load["Type"] == "PRONO"]
+        .drop(columns=["Type"], errors="ignore")
+        .dropna(how="all", axis=1)
+        .reset_index(drop=True)
+    )
+    st.session_state.bonus = (
+        df_load[df_load["Type"] == "BONUS"]
+        .drop(columns=["Type"], errors="ignore")
+        .dropna(how="all", axis=1)
+        .reset_index(drop=True)
+    )
   else:
-    st.session_state.matchs = pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
-    st.session_state.pronos = pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
-    st.session_state.bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
+    st.session_state.matchs = pd.DataFrame(
+        columns=[
+            "ID Match",
+            "Adversaire",
+            "Date",
+            "Heure",
+            "Résultat",
+            "Score Réel",
+            "Buteurs",
+        ]
+    )
+    st.session_state.pronos = pd.DataFrame(
+        columns=[
+            "Participant",
+            "Match",
+            "Prono (1N2)",
+            "Score",
+            "Buteur",
+            "Doublé ?",
+            "Points",
+        ]
+    )
+    st.session_state.bonus = pd.DataFrame(
+        columns=["Participant", "Points Bonus"]
+    )
 
   st.session_state.donnees_chargees = True
 
-# Sécurité structures vides
+# Sécurisation des structures si vides
 if "matchs" not in st.session_state or st.session_state.matchs is None:
-  st.session_state.matchs = pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
+  st.session_state.matchs = pd.DataFrame(
+      columns=[
+          "ID Match",
+          "Adversaire",
+          "Date",
+          "Heure",
+          "Résultat",
+          "Score Réel",
+          "Buteurs",
+      ]
+  )
 if "pronos" not in st.session_state or st.session_state.pronos is None:
-  st.session_state.pronos = pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
+  st.session_state.pronos = pd.DataFrame(
+      columns=[
+          "Participant",
+          "Match",
+          "Prono (1N2)",
+          "Score",
+          "Buteur",
+          "Doublé ?",
+          "Points",
+      ]
+  )
 if "bonus" not in st.session_state or st.session_state.bonus is None:
   st.session_state.bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
 
