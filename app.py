@@ -10,6 +10,17 @@ st.set_page_config(
     layout="wide",
 )
 
+# Injection de la balise HTML pour forcer l'icône sur les téléphones
+st.markdown(
+    """
+    <head>
+        <link rel="apple-touch-icon" href="icone.png">
+        <link rel="icon" type="image/png" href="icone.png">
+    </head>
+""",
+    unsafe_allow_html=True,
+)
+
 MOT_DE_PASSE_ADMIN = "yoan"
 FICHIER_DONNEES = "donnees_pronos.csv"
 
@@ -42,7 +53,7 @@ EFFECTIF_SMC = [
 ]
 
 
-# --- GESTION DE LA PERSISTANCE ---
+# GESTION DE LA PERSISTANCE
 def charger_donnees():
   if os.path.exists(FICHIER_DONNEES):
     try:
@@ -77,7 +88,7 @@ def sauvegarder_donnees():
     df_global.to_csv(FICHIER_DONNEES, index=False)
 
 
-# --- FONCTION DE CALCUL DES POINTS (BARRÈME AJUSTÉ) ---
+# FONCTION DE CALCUL DES POINTS (BARRÈME AJUSTÉ)
 def calculer_points():
   if st.session_state.pronos.empty or st.session_state.matchs.empty:
     return
@@ -143,7 +154,7 @@ def calculer_points():
   sauvegarder_donnees()
 
 
-# --- INITIALISATION SESSION STATE ---
+# INITIALISATION SESSION STATE
 if "donnees_chargees" not in st.session_state:
   df_load = charger_donnees()
 
@@ -242,7 +253,7 @@ st.session_state.bonus["Points Bonus"] = (
 
 calculer_points()
 
-# --- DESIGN & UI ---
+# DESIGN & UI
 st.markdown("""
     <style>
     .stApp { background-color: #f4f6f9; color: #002D62; }
@@ -254,11 +265,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- AFFICHAGE DU LOGO ---
+# AFFICHAGE DU LOGO
 col1, col2, col3 = st.columns([1, 1, 1])
 with col2:
   try:
-    st.image("logo.png", width=150)
+    st.image("icone.png", width=150)
   except Exception:
     pass
 
@@ -303,7 +314,7 @@ def obtenir_liste_participants():
   return sorted(list(tous))
 
 
-# --- ONGLET 1 : FAIRE MON PRONO ---
+# ONGLET 1 : FAIRE MON PRONO
 if menu == "📝 Faire mon Prono":
   st.header("🎯 Enregistrer ton Pronostic")
 
@@ -442,7 +453,7 @@ if menu == "📝 Faire mon Prono":
         st.session_state.pronos[colonnes_visibles], use_container_width=True
     )
 
-# --- ONGLET 2 : CLASSEMENT ---
+# ONGLET 2 : CLASSEMENT
 elif menu == "🏆 Classement":
   st.header("🏆 Classement Général")
   calculer_points()
@@ -475,12 +486,12 @@ elif menu == "🏆 Classement":
   else:
     st.info("Le classement est vide pour le moment.")
 
-# --- ONGLET 3 : PARTICIPANTS ---
+# ONGLET 3 : PARTICIPANTS
 elif menu == "👥 Participants":
   st.header("👥 Liste des Participants")
   st.write("Participants enregistrés :", ", ".join(obtenir_liste_participants()))
 
-# --- ONGLET 4 : ESPACE ADMIN ---
+# ONGLET 4 : ESPACE ADMIN
 elif menu == "⚙️ Espace Admin":
   st.header("🔐 Espace Organisateur")
   mdp = st.text_input("Mot de passe administrateur :", type="password")
@@ -645,7 +656,7 @@ elif menu == "⚙️ Espace Admin":
     st.subheader("Liste des matchs actuels")
     st.dataframe(st.session_state.matchs, use_container_width=True)
 
-    # --- SECTION SUPPRESSION DE MATCH ---
+    # SECTION SUPPRESSION DE MATCH
     if not st.session_state.matchs.empty:
       st.markdown("---")
       st.subheader("🗑️ Supprimer un Match")
