@@ -487,35 +487,80 @@ elif menu == "⚙️ Espace Admin":
             st.session_state.matchs["ID Match"] == match_a_maj
         ].iloc[0]
 
+        adversaire_nom = (
+            str(match_ligne["Adversaire"]).strip()
+            if "Adversaire" in match_ligne and str(match_ligne["Adversaire"])
+            else "Adversaire"
+        )
+
         with st.form("f_resultat"):
           res_actuel = str(match_ligne["Résultat"])
           score_actuel = str(match_ligne["Score Réel"])
-          buteurs_actuels = str(match_ligne["Buteurs"])
+          buteurs_actuels_str = str(match_ligne["Buteurs"])
 
-          res_reel = st.selectbox(
+          # Création du dictionnaire pour l'affichage clair dans le selectbox
+          options_dict = {
+              "": "",
+              "1": f"Victoire de Caen (1)",
+              "N": f"Match Nul (N)",
+              "2": f"Victoire de {adversaire_nom} (2)",
+          }
+          options_keys = list(options_dict.keys())
+
+          index_initial = 0
+          if res_actuel in options_keys:
+            index_initial = options_keys.index(res_actuel)
+
+          choix_res_form = st.selectbox(
               "Vainqueur Réel",
-              ["", "1", "N", "2"],
-              index=(
-                  ["", "1", "N", "2"].index(res_actuel)
-                  if res_actuel in ["", "1", "N", "2"]
-                  else 0
-              ),
+              options_keys,
+              format_func=lambda x: options_dict[x],
+              index=index_initial,
           )
+
           score_reel = st.text_input(
               "Score Réel exact (ex: 2-1)", value=score_actuel
           )
-          buteurs_reels = st.text_input(
-              "Buteurs réels (séparés par des virgules)",
-              value=buteurs_actuels,
+
+          # Sélection des buteurs réels via l'effectif SMC
+          buteurs_deja_enregistres = [
+              b.strip() for b in buteurs_actuels_str.split(",") if b.strip()
+          ]
+          buteurs_reels_choisis = st.multiselect(
+              "Buteurs réels",
+              EFFECTIF_SMC,
+              default=[
+                  b
+                  for b in buteurs_deja_enregistres
+                  if b in EFFECTIF_SMC
+              ],
           )
 
+          autre_buteur_reel_saisi = ""
+          if "Autre" in buteurs_reels_choisis:
+            autre_buteur_reel_saisi = st.text_input(
+                "Préciser le nom du joueur (si 'Autre' sélectionné pour les"
+                " buts réels) :"
+            )
+
           if st.form_submit_button("Enregistrer les résultats et calculer"):
+            liste_finale_buteurs = []
+            for b in buteurs_reels_choisis:
+              if b == "Autre" and autre_buteur_reel_saisi:
+                liste_finale_buteurs.append(autre_buteur_reel_saisi)
+              elif b != "Autre":
+                liste_finale_buteurs.append(b)
+
+            buteurs_texte_final = ", ".join(liste_finale_buteurs)
+
             idx_m = st.session_state.matchs[
                 st.session_state.matchs["ID Match"] == match_a_maj
             ].index[0]
-            st.session_state.matchs.loc[idx_m, "Résultat"] = str(res_reel)
+            st.session_state.matchs.loc[idx_m, "Résultat"] = str(choix_res_form)
             st.session_state.matchs.loc[idx_m, "Score Réel"] = str(score_reel)
-            st.session_state.matchs.loc[idx_m, "Buteurs"] = str(buteurs_reels)
+            st.session_state.matchs.loc[idx_m, "Buteurs"] = str(
+                buteurs_texte_final
+            )
 
             calculer_points()
             sauvegarder_donnees()
