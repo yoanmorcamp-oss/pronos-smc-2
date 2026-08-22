@@ -4,8 +4,11 @@ import pandas as pd
 import streamlit as st
 from zoneinfo import ZoneInfo
 
+# ---> C'est ici qu'on met ton logo pour l'icône de l'app / onglet / raccourci téléphone <---
 st.set_page_config(
-    page_title="Pronos SMC - Saison 2026-2027", page_icon="⚽", layout="wide"
+    page_title="Pronos SMC - Saison 2026-2027",
+    page_icon="icone.png",
+    layout="wide",
 )
 
 MOT_DE_PASSE_ADMIN = "yoan"
@@ -651,7 +654,7 @@ elif menu == "⚙️ Espace Admin":
     st.subheader("Liste des matchs actuels")
     st.dataframe(st.session_state.matchs, use_container_width=True)
 
-    # --- SECTION SUPPRESSION DE MATCH ---
+    // --- SECTION SUPPRESSION DE MATCH ---
     if not st.session_state.matchs.empty:
       st.markdown("---")
       st.subheader("🗑️ Supprimer un Match")
