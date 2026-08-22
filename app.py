@@ -126,7 +126,7 @@ if "donnees_chargees" not in st.session_state:
 
   st.session_state.donnees_chargees = True
 
-# Assurer les colonnes obligatoires si absentes
+# Forçage des types de colonnes en string pour éviter les conflits de types
 for col in [
     "ID Match",
     "Adversaire",
@@ -138,6 +138,7 @@ for col in [
 ]:
   if col not in st.session_state.matchs.columns:
     st.session_state.matchs[col] = ""
+  st.session_state.matchs[col] = st.session_state.matchs[col].astype(str)
 
 for col in [
     "Participant",
@@ -146,14 +147,23 @@ for col in [
     "Score",
     "Buteur",
     "Doublé ?",
-    "Points",
 ]:
   if col not in st.session_state.pronos.columns:
     st.session_state.pronos[col] = ""
+  st.session_state.pronos[col] = st.session_state.pronos[col].astype(str)
 
-for col in ["Participant", "Points Bonus"]:
+if "Points" not in st.session_state.pronos.columns:
+  st.session_state.pronos["Points"] = 0
+st.session_state.pronos["Points"] = pd.to_numeric(
+    st.session_state.pronos["Points"], errors="fillna"
+).fillna(0)
+
+for col in ["Participant"]:
   if col not in st.session_state.bonus.columns:
     st.session_state.bonus[col] = ""
+  st.session_state.bonus[col] = st.session_state.bonus[col].astype(str)
+if "Points Bonus" not in st.session_state.bonus.columns:
+  st.session_state.bonus["Points Bonus"] = 0
 
 
 # --- FONCTION DE CALCUL DES POINTS SÉCURISÉE ---
@@ -162,18 +172,16 @@ def calculer_points():
     return
 
   for idx, p in st.session_state.pronos.iterrows():
-    match_id = p["Match"]
+    match_id = str(p["Match"])
     match_info = st.session_state.matchs[
         st.session_state.matchs["ID Match"] == match_id
     ]
 
     if not match_info.empty:
       row = match_info.iloc[0]
-      res_reel = str(row["Résultat"]).strip() if "Résultat" in row else ""
-      score_reel = str(row["Score Réel"]).strip() if "Score Réel" in row else ""
-      buteurs_reels = (
-          str(row["Buteurs"]).lower() if "Buteurs" in row else ""
-      )
+      res_reel = str(row["Résultat"]).strip()
+      score_reel = str(row["Score Réel"]).strip()
+      buteurs_reels = str(row["Buteurs"]).lower()
 
       points = 0
       prono_1n2 = str(p["Prono (1N2)"]).strip()
@@ -197,7 +205,7 @@ def calculer_points():
       ):
         points += 3
 
-      st.session_state.pronos.loc[idx, "Points"] = points
+      st.session_state.pronos.loc[idx, "Points"] = int(points)
   sauvegarder_donnees()
 
 
@@ -286,14 +294,12 @@ if menu == "📝 Faire mon Prono":
 
     match_verrouille = False
     try:
-      # Nettoyage et formatage strict de la date et de l'heure
       match_datetime = datetime.strptime(
           f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
       )
       if datetime.now() >= match_datetime:
         match_verrouille = True
-    except Exception as e:
-      # En cas de format inhabituel, on ne bloque pas par défaut mais on trace
+    except Exception:
       pass
 
     if match_verrouille:
@@ -324,31 +330,31 @@ if menu == "📝 Faire mon Prono":
       )
 
       if st.button("Valider mon Prono 🚀"):
-        # Double vérification anti-fraude au moment exact du clic
         if match_verrouille:
           st.error("Impossible de valider : le match a commencé !")
         elif nom_utilisateur:
-          choix_clean = prono_1n2.split()[0]
-          buteurs_texte_str = ", ".join(buteurs_selectionnes)
+          choix_clean = str(prono_1n2.split()[0])
+          buteurs_texte_str = str(", ".join(buteurs_selectionnes))
 
           existing_idx = st.session_state.pronos[
-              (st.session_state.pronos["Participant"] == nom_utilisateur)
-              & (st.session_state.pronos["Match"] == match_choisi)
+              (st.session_state.pronos["Participant"] == str(nom_utilisateur))
+              & (st.session_state.pronos["Match"] == str(match_choisi))
           ].index
+
           if not existing_idx.empty:
             idx = existing_idx[0]
             st.session_state.pronos.loc[idx, "Prono (1N2)"] = choix_clean
-            st.session_state.pronos.loc[idx, "Score"] = prono_score
+            st.session_state.pronos.loc[idx, "Score"] = str(prono_score)
             st.session_state.pronos.loc[idx, "Buteur"] = buteurs_texte_str
-            st.session_state.pronos.loc[idx, "Doublé ?"] = annonce_double
+            st.session_state.pronos.loc[idx, "Doublé ?"] = str(annonce_double)
           else:
             new_row = pd.DataFrame({
-                "Participant": [nom_utilisateur],
-                "Match": [match_choisi],
+                "Participant": [str(nom_utilisateur)],
+                "Match": [str(match_choisi)],
                 "Prono (1N2)": [choix_clean],
-                "Score": [prono_score],
+                "Score": [str(prono_score)],
                 "Buteur": [buteurs_texte_str],
-                "Doublé ?": [annonce_double],
+                "Doublé ?": [str(annonce_double)],
                 "Points": [0],
             })
             st.session_state.pronos = pd.concat(
@@ -384,10 +390,9 @@ elif menu == "🏆 Classement":
     classement_complet = pd.merge(
         p_pronos_sum, st.session_state.bonus, on="Participant", how="outer"
     ).fillna(0)
-    classement_complet["Points Total"] = (
-        classement_complet["Points"]
-        + classement_complet["Points Bonus"].astype(float)
-    )
+    classement_complet["Points Total"] = classement_complet[
+        "Points"
+    ] + classement_complet["Points Bonus"].astype(float)
     classement_final = (
         classement_complet[["Participant", "Points Total", "Points Bonus"]]
         .sort_values(by="Points Total", ascending=False)
@@ -412,7 +417,9 @@ elif menu == "👥 Participants & Bonus":
           st.session_state.bonus["Participant"] == p_choisi
       ].index
       if not existing_b.empty:
-        st.session_state.bonus.loc[existing_b[0], "Points Bonus"] += pts_bonus
+        st.session_state.bonus.loc[
+            existing_b[0], "Points Bonus"
+        ] += pts_bonus
       else:
         new_b = pd.DataFrame(
             {"Participant": [p_choisi], "Points Bonus": [pts_bonus]}
@@ -446,8 +453,8 @@ elif menu == "⚙️ Espace Admin":
         if st.form_submit_button("Créer le match"):
           if id_m:
             new_m = pd.DataFrame({
-                "ID Match": [id_m],
-                "Adversaire": [adv],
+                "ID Match": [str(id_m)],
+                "Adversaire": [str(adv)],
                 "Date": [str(date_m)],
                 "Heure": [heure_m.strftime("%H:%M")],
                 "Résultat": [""],
@@ -474,15 +481,9 @@ elif menu == "⚙️ Espace Admin":
         ].iloc[0]
 
         with st.form("f_resultat"):
-          res_actuel = (
-              match_ligne["Résultat"] if "Résultat" in match_ligne else ""
-          )
-          score_actuel = (
-              match_ligne["Score Réel"] if "Score Réel" in match_ligne else ""
-          )
-          buteurs_actuels = (
-              match_ligne["Buteurs"] if "Buteurs" in match_ligne else ""
-          )
+          res_actuel = str(match_ligne["Résultat"])
+          score_actuel = str(match_ligne["Score Réel"])
+          buteurs_actuels = str(match_ligne["Buteurs"])
 
           res_reel = st.selectbox(
               "Vainqueur Réel",
@@ -505,9 +506,9 @@ elif menu == "⚙️ Espace Admin":
             idx_m = st.session_state.matchs[
                 st.session_state.matchs["ID Match"] == match_a_maj
             ].index[0]
-            st.session_state.matchs.loc[idx_m, "Résultat"] = res_reel
-            st.session_state.matchs.loc[idx_m, "Score Réel"] = score_reel
-            st.session_state.matchs.loc[idx_m, "Buteurs"] = buteurs_reels
+            st.session_state.matchs.loc[idx_m, "Résultat"] = str(res_reel)
+            st.session_state.matchs.loc[idx_m, "Score Réel"] = str(score_reel)
+            st.session_state.matchs.loc[idx_m, "Buteurs"] = str(buteurs_reels)
 
             calculer_points()
             sauvegarder_donnees()
