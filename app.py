@@ -74,7 +74,7 @@ def sauvegarder_donnees():
     df_global.to_csv(FICHIER_DONNEES, index=False)
 
 
-# --- FONCTION DE CALCUL ULTRA-SOUPLE ---
+# --- FONCTION DE CALCUL DES POINTS (BARRÈME AJUSTÉ) ---
 def calculer_points():
   if st.session_state.pronos.empty or st.session_state.matchs.empty:
     return
@@ -91,7 +91,17 @@ def calculer_points():
       score_reel = (
           str(row["Score Réel"]).strip().replace(" ", "").replace("–", "-")
       )
-      buteurs_reels = str(row["Buteurs"]).lower().strip()
+      buteurs_reels_brut = str(row["Buteurs"]).strip()
+
+      # Analyse des buts réels par joueur pour compter les doublés
+      buteurs_reels_liste = [
+          b.strip().lower()
+          for b in buteurs_reels_brut.split(",")
+          if b.strip()
+      ]
+      compteur_buts_reels = {}
+      for b in buteurs_reels_liste:
+        compteur_buts_reels[b] = compteur_buts_reels.get(b, 0) + 1
 
       points = 0
       prono_1n2 = str(p["Prono (1N2)"]).strip()
@@ -101,29 +111,32 @@ def calculer_points():
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
 
-      # 1. Test Résultat 1N2 (3 pts)
+      # 1. Test Résultat 1N2 (2 pts)
       if res_reel and prono_1n2 == res_reel:
-        points += 3
+        points += 2
 
-      # 2. Test Score Exact (5 pts)
+      # 2. Test Score Exact (10 pts)
       if score_reel and prono_score == score_reel:
-        points += 5
+        points += 10
 
-      # 3. Test Buteurs (2 pts par buteur)
-      if buteurs_reels and p_buteur and p_buteur != "nan":
-        buteurs_choisis = [b.strip() for b in p_buteur.split(",") if b.strip()]
-        for b in buteurs_choisis:
-          if b.lower() in buteurs_reels:
-            points += 2
+      # 3. Test Buteurs (3 pts une seule fois par buteur trouvé, peu importe s'il met plus de buts)
+      buteurs_choisis = [
+          b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
+      ]
+      for b in buteurs_choisis:
+        b_lower = b.lower()
+        if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
+          points += 3  # 3 pts uniques pour le but
 
-      # 4. Test Doublé (3 pts)
-      if (
-          p_double
-          and p_double != "Aucun"
-          and p_double != "nan"
-          and p_double.lower() in buteurs_reels
-      ):
-        points += 3
+      # 4. Test Doublé (+5 pts si réussi, -3 pts si raté en ayant annoncé un doublé)
+      if p_double and p_double != "Aucun" and p_double != "nan":
+        joueur_double_annonce = p_double.lower()
+        buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
+
+        if buts_du_joueur >= 2:
+          points += 5  # Doublé réussi
+        else:
+          points -= 3  # Doublé raté (le joueur n'a pas mis 2 buts ou plus)
 
       st.session_state.pronos.loc[idx, "Points"] = int(points)
     else:
@@ -316,6 +329,7 @@ if menu == "📝 Faire mon Prono":
     date_str = str(match_ligne["Date"]).strip()
     heure_str = str(match_ligne["Heure"]).strip()
 
+    # Vérification robuste du verrouillage par date et heure
     match_verrouille = False
     try:
       match_datetime = datetime.strptime(
@@ -328,8 +342,8 @@ if menu == "📝 Faire mon Prono":
 
     if match_verrouille:
       st.error(
-          "⏳ Ce match a déjà commencé. Les pronos sont verrouillés pour cette"
-          " rencontre !"
+          "⏳ Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
+          " sont verrouillés pour cette rencontre !"
       )
     else:
       prono_1n2 = st.selectbox(
@@ -430,7 +444,6 @@ elif menu == "🏆 Classement":
         "Points"
     ] + classement_complet["Points Bonus"].astype(int)
 
-    # On ne garde que le nom et le score total final, propre et sans fioriture
     classement_final = (
         classement_complet[["Participant", "Points Total"]]
         .rename(columns={"Points Total": "Points"})
