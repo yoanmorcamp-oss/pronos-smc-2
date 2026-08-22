@@ -129,7 +129,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("⚽ Concours de Pronos - SMC")
+# En-tête avec Logo SMC et Titre
+col_logo, col_titre = st.columns([1, 5])
+with col_logo:
+  st.image(
+      "https://upload.wikimedia.org/wikipedia/fr/thumb/e/e1/Stade_Malherbe_Caen_logo_2024.svg/langfr-120px-Stade_Malherbe_Caen_logo_2024.svg.png",
+      width=90,
+  )
+with col_titre:
+  st.title("Concours de Pronos - SMC")
 
 menu = st.sidebar.radio(
     "🧭 Navigation",
