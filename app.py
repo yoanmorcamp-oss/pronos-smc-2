@@ -10,16 +10,32 @@ st.set_page_config(
 MOT_DE_PASSE_ADMIN = "yoan"
 
 PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
+
+# EFFECTIF COMPLET SMC 2026-2027 + "Autre"
 EFFECTIF_SMC = [
     "Anthony Mandréa",
     "Yannis Clémentia",
     "Parfait Mandanda",
+    "Nassim Titebah",
+    "Diabé Bolumbu",
+    "Sacha M'Baka",
     "Dennis Appiah",
-    "Salim Diakité",
-    "Mohamed Hafid",
+    "Nazim Babaï",
+    "Hugo Lamouliatte",
+    "Josué Kimboma",
+    "Freddy Bomo",
+    "Gabin Tome",
+    "Léo Milliner",
+    "Zoumana Bagbema",
+    "Mohamed El Idrissi",
+    "Samuel Noireau-Dauriat",
+    "Fahd El Khoumisti",
     "Ivann Botella",
     "Armand Gnanduillet",
-    "Fahd El Khoumisti",
+    "Keelyan Portut",
+    "Mohamed Hafid",
+    "Salim Diakité",
+    "Autre",
 ]
 
 # --- INITIALISATION DE LA MÉMOIRE (SESSION STATE) ---
@@ -87,11 +103,15 @@ def calculer_points():
       if buteurs_reels and p_buteur:
         buteurs_choisis = [b.strip() for b in p_buteur.split(",")]
         for b in buteurs_choisis:
-          if b.lower() in buteurs_reels:
+          if b != "Autre" and b.lower() in buteurs_reels:
             points += 2
 
       # 4. Doublé trouvé (3 points bonus)
-      if p_double != "Aucun" and p_double.lower() in buteurs_reels:
+      if (
+          p_double != "Aucun"
+          and p_double != "Autre"
+          and p_double.lower() in buteurs_reels
+      ):
         points += 3
 
       st.session_state.pronos.loc[idx, "Points"] = points
@@ -105,7 +125,6 @@ st.markdown("""
     h2, h3, label, p { color: #002D62 !important; font-weight: 600; }
     .stButton > button { background-color: #E30613 !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; }
     
-    /* Style de la barre latérale pour forcer le texte en blanc lisible */
     [data-testid="stSidebar"] { background-color: #002D62; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stRadio div { color: white !important; font-weight: 600; }
     </style>
@@ -171,8 +190,20 @@ if menu == "📝 Faire mon Prono":
     with col2:
       buteurs_selectionnes = st.multiselect("Buteurs", EFFECTIF_SMC)
 
+    # Si "Autre" est sélectionné, on propose de préciser le nom du joueur
+    if "Autre" in buteurs_selectionnes:
+      autre_buteur_saisi = st.text_input(
+          "Préciser le nom du joueur (si 'Autre' sélectionné) :"
+      )
+      if autre_buteur_saisi:
+        buteurs_selectionnes = [
+            b if b != "Autre" else autre_buteur_saisi
+            for b in buteurs_selectionnes
+        ]
+
+    options_double = ["Aucun"] + buteurs_selectionnes
     annonce_double = st.selectbox(
-        "Doublé ?", ["Aucun"] + buteurs_selectionnes
+        "Doublé ?", options_double if options_double else ["Aucun"]
     )
 
     if st.button("Valider 🚀"):
