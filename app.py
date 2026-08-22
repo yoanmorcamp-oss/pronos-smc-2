@@ -69,7 +69,6 @@ def charger_donnees():
 
 
 def sauvegarder_donnees():
-  # On fusionne Matchs, Pronos et Bonus dans un seul DataFrame plat pour le fichier CSV
   dfs = []
   if not st.session_state.matchs.empty:
     m = st.session_state.matchs.copy()
@@ -92,57 +91,24 @@ def sauvegarder_donnees():
 # --- INITIALISATION DE LA MÉMOIRE (SESSION STATE) ---
 if "donnees_chargees" not in st.session_state:
   df_load = charger_donnees()
-  st.session_state.matchs = (
-      df_load[df_load["Type"] == "MATCH"]
-      .dropna(how="all", axis=1)
-      .reset_index(drop=True)
-  )
-  st.session_state.pronos = (
-      df_load[df_load["Type"] == "PRONO"]
-      .dropna(how="all", axis=1)
-      .reset_index(drop=True)
-  )
-  st.session_state.bonus = (
-      df_load[df_load["Type"] == "BONUS"]
-      .dropna(how="all", axis=1)
-      .reset_index(drop=True)
-  )
-
-  # Nettoyage des colonnes Type superflues dans les sous-tables si besoin
-  for df_name in ["matchs", "pronos", "bonus"]:
-    if "Type" in getattr(st.session_state, df_name).columns:
-      getattr(st.session_state, df_name).drop(
-          columns=["Type"], inplace=True, errors="ignore"
-      )
+  
+  if not df_load.empty and "Type" in df_load.columns:
+    st.session_state.matchs = df_load[df_load["Type"] == "MATCH"].drop(columns=["Type"], errors="ignore").dropna(how="all", axis=1).reset_index(drop=True)
+    st.session_state.pronos = df_load[df_load["Type"] == "PRONO"].drop(columns=["Type"], errors="ignore").dropna(how="all", axis=1).reset_index(drop=True)
+    st.session_state.bonus = df_load[df_load["Type"] == "BONUS"].drop(columns=["Type"], errors="ignore").dropna(how="all", axis=1).reset_index(drop=True)
+  else:
+    st.session_state.matchs = pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
+    st.session_state.pronos = pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
+    st.session_state.bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
 
   st.session_state.donnees_chargees = True
 
-# S'assurer que les DataFrames ont les bonnes colonnes minimales
-if "matchs" not in st.session_state or st.session_state.matchs.empty:
-  st.session_state.matchs = pd.DataFrame(
-      columns=[
-          "ID Match",
-          "Adversaire",
-          "Date",
-          "Heure",
-          "Résultat",
-          "Score Réel",
-          "Buteurs",
-      ]
-  )
-if "pronos" not in st.session_state:
-  st.session_state.pronos = pd.DataFrame(
-      columns=[
-          "Participant",
-          "Match",
-          "Prono (1N2)",
-          "Score",
-          "Buteur",
-          "Doublé ?",
-          "Points",
-      ]
-  )
-if "bonus" not in st.session_state:
+# Sécurité structures vides
+if "matchs" not in st.session_state or st.session_state.matchs is None:
+  st.session_state.matchs = pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
+if "pronos" not in st.session_state or st.session_state.pronos is None:
+  st.session_state.pronos = pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
+if "bonus" not in st.session_state or st.session_state.bonus is None:
   st.session_state.bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
 
 
@@ -358,6 +324,7 @@ elif menu == "🏆 Classement":
       .sum()
       .reset_index()
       if not st.session_state.pronos.empty
+      and "Participant" in st.session_state.pronos.columns
       else pd.DataFrame(columns=["Participant", "Points"])
   )
 
