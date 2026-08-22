@@ -129,15 +129,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# En-tête avec Logo SMC et Titre
-col_logo, col_titre = st.columns([1, 5])
-with col_logo:
-  st.image(
-      "https://upload.wikimedia.org/wikipedia/fr/thumb/e/e1/Stade_Malherbe_Caen_logo_2024.svg/langfr-120px-Stade_Malherbe_Caen_logo_2024.svg.png",
-      width=90,
-  )
-with col_titre:
-  st.title("Concours de Pronos - SMC")
+# En-tête propre avec style Stade Malherbe (Bleu/Rouge)
+st.markdown(
+    "<h1 style='text-align: center;'>🔴🔵 CONCOURS DE PRONOS - SMC 🔵🔴</h1>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='text-align: center; color: #E30613 !important; font-weight:"
+    " bold;'>Saison 2026-2027</p>",
+    unsafe_allow_html=True,
+)
 
 menu = st.sidebar.radio(
     "🧭 Navigation",
