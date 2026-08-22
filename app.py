@@ -90,22 +90,15 @@ def calculer_points():
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
 
-      # 1. Bon 1N2 (3 points)
       if res_reel and prono_1n2 == res_reel:
         points += 3
-
-      # 2. Bon score exact (5 points bonus)
       if score_reel and prono_score == score_reel:
         points += 5
-
-      # 3. Buteur trouvé (2 points par buteur)
       if buteurs_reels and p_buteur:
         buteurs_choisis = [b.strip() for b in p_buteur.split(",")]
         for b in buteurs_choisis:
           if b != "Autre" and b.lower() in buteurs_reels:
             points += 2
-
-      # 4. Doublé trouvé (3 points bonus)
       if (
           p_double != "Aucun"
           and p_double != "Autre"
@@ -120,18 +113,17 @@ def calculer_points():
 st.markdown("""
     <style>
     .stApp { background-color: #f4f6f9; color: #002D62; }
-    h1 { color: #002D62 !important; font-weight: 800; text-transform: uppercase; }
+    h1 { color: #002D62 !important; font-weight: 800; text-transform: uppercase; font-size: 1.5rem !important; }
     h2, h3, label, p { color: #002D62 !important; font-weight: 600; }
-    .stButton > button { background-color: #E30613 !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; }
-    
+    .stButton > button { background-color: #E30613 !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; width: 100%; }
     [data-testid="stSidebar"] { background-color: #002D62; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stRadio div { color: white !important; font-weight: 600; }
     </style>
 """, unsafe_allow_html=True)
 
-# En-tête propre avec style Stade Malherbe (Bleu/Rouge)
 st.markdown(
-    "<h1 style='text-align: center;'>🔴🔵 CONCOURS DE PRONOS - SMC 🔵🔴</h1>",
+    "<h1 style='text-align: center;'>🔴🔵 CONCOURS DE PRONOS - SMC"
+    " 🔵🔴</h1>",
     unsafe_allow_html=True,
 )
 st.markdown(
@@ -173,11 +165,17 @@ def obtenir_liste_participants():
 # --- ONGLET 1 : FAIRE MON PRONO ---
 if menu == "📝 Faire mon Prono":
   st.header("🎯 Enregistrer ton Pronostic")
+
   if st.session_state.matchs.empty:
-    st.info(
-        "Aucun match ouvert pour l'instant. Demande à l'admin d'en ajouter un !"
+    st.warning(
+        "⚠️ Aucun match créé pour l'instant. Va dans l'Espace Admin pour en"
+        " ajouter un !"
     )
   else:
+    # Affichage clair de tous les matchs dispos pour info sur mobile
+    with st.expander("📅 Voir les détails des matchs enregistrés"):
+      st.dataframe(st.session_state.matchs, use_container_width=True)
+
     matchs_disponibles = st.session_state.matchs["ID Match"].tolist()
     choix_participant = st.selectbox(
         "Pseudo", obtenir_liste_participants() + ["➕ Nouveau"]
@@ -187,9 +185,8 @@ if menu == "📝 Faire mon Prono":
         if choix_participant == "➕ Nouveau"
         else choix_participant
     )
-    match_choisi = st.selectbox("Match", matchs_disponibles)
+    match_choisi = st.selectbox("Sélectionne le match", matchs_disponibles)
 
-    # Vérification du verrouillage selon la date et l'heure du match
     match_ligne = st.session_state.matchs[
         st.session_state.matchs["ID Match"] == match_choisi
     ].iloc[0]
@@ -208,18 +205,16 @@ if menu == "📝 Faire mon Prono":
 
     if match_verrouille:
       st.error(
-          "⏳ Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
-          " sont verrouillés pour cette rencontre !"
+          "⏳ Ce match a déjà commencé. Les pronos sont verrouillés pour cette"
+          " rencontre !"
       )
     else:
-      col1, col2 = st.columns(2)
-      with col1:
-        prono_1n2 = st.selectbox(
-            "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
-        )
-        prono_score = st.text_input("Score exact (ex: 2-0)")
-      with col2:
-        buteurs_selectionnes = st.multiselect("Buteurs", EFFECTIF_SMC)
+      # Remplacement des colonnes côte à côte par un affichage vertical fluide sur mobile
+      prono_1n2 = st.selectbox(
+          "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
+      )
+      prono_score = st.text_input("Score exact (ex: 2-0)")
+      buteurs_selectionnes = st.multiselect("Buteurs", EFFECTIF_SMC)
 
       if "Autre" in buteurs_selectionnes:
         autre_buteur_saisi = st.text_input(
@@ -236,7 +231,7 @@ if menu == "📝 Faire mon Prono":
           "Doublé ?", options_double if options_double else ["Aucun"]
       )
 
-      if st.button("Valider 🚀"):
+      if st.button("Valider mon Prono 🚀"):
         if nom_utilisateur:
           choix_clean = prono_1n2.split()[0]
           buteurs_texte_str = ", ".join(buteurs_selectionnes)
@@ -367,7 +362,7 @@ elif menu == "⚙️ Espace Admin":
                 ],
                 ignore_index=True,
             )
-            st.success("Match créé avec succès et verrouillage programmé !")
+            st.success("Match créé avec succès !")
             st.rerun()
 
     with tab_res:
@@ -409,10 +404,7 @@ elif menu == "⚙️ Espace Admin":
             st.session_state.matchs.loc[idx_m, "Buteurs"] = buteurs_reels
 
             calculer_points()
-            st.success(
-                "Résultats enregistrés et points recalculés automatiquement"
-                " pour tout le monde !"
-            )
+            st.success("Résultats enregistrés et points recalculés !")
             st.rerun()
 
     st.subheader("Liste des matchs actuels")
