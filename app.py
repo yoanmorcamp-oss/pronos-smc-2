@@ -265,7 +265,7 @@ with col2:
   # Remplaces 'url_ou_chemin_vers_ton_logo.png' par le chemin local ou l'URL de ton logo
   try:
     st.image(
-    "C:/Users/yoanm/Desktop/appli prono caen/logo.png", width=150)", width=150
+    "C:/Users/yoanm/Desktop/appli prono caen/logo.png", width=150
     )  # Ajuste la largeur si besoin
   except Exception:
     pass  # Évite un plantage si l'image n'est pas encore téléchargée
