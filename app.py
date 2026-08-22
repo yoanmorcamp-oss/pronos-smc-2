@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 import pandas as pd
 import streamlit as st
+from zoneinfo import ZoneInfo
 
 st.set_page_config(
     page_title="Pronos SMC - Saison 2026-2027", page_icon="⚽", layout="wide"
@@ -119,7 +120,7 @@ def calculer_points():
       if score_reel and prono_score == score_reel:
         points += 10
 
-      # 3. Test Buteurs (3 pts une seule fois par buteur trouvé, peu importe s'il met plus de buts)
+      # 3. Test Buteurs (3 pts une seule fois par buteur trouvé)
       buteurs_choisis = [
           b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
       ]
@@ -136,7 +137,7 @@ def calculer_points():
         if buts_du_joueur >= 2:
           points += 5  # Doublé réussi
         else:
-          points -= 3  # Doublé raté (le joueur n'a pas mis 2 buts ou plus)
+          points -= 3  # Doublé raté
 
       st.session_state.pronos.loc[idx, "Points"] = int(points)
     else:
@@ -329,16 +330,22 @@ if menu == "📝 Faire mon Prono":
     date_str = str(match_ligne["Date"]).strip()
     heure_str = str(match_ligne["Heure"]).strip()
 
-    # Vérification robuste du verrouillage par date et heure
+    # Vérification précise du verrouillage avec l'heure de Paris
     match_verrouille = False
     try:
+      tz_paris = ZoneInfo("Europe/Paris")
+      maintenant = datetime.now(tz_paris)
+      match_datetime = datetime.strptime(
+          f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
+      ).replace(tzinfo=tz_paris)
+      if maintenant >= match_datetime:
+        match_verrouille = True
+    except Exception:
       match_datetime = datetime.strptime(
           f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
       )
       if datetime.now() >= match_datetime:
         match_verrouille = True
-    except Exception:
-      pass
 
     if match_verrouille:
       st.error(
@@ -370,12 +377,18 @@ if menu == "📝 Faire mon Prono":
       if st.button("Valider mon Prono 🚀"):
         verification_actuelle = False
         try:
+          tz_paris = ZoneInfo("Europe/Paris")
+          maintenant = datetime.now(tz_paris)
+          match_datetime = datetime.strptime(
+              f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
+          ).replace(tzinfo=tz_paris)
+          if maintenant >= match_datetime:
+            verification_actuelle = True
+        except Exception:
           if datetime.now() >= datetime.strptime(
               f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
           ):
             verification_actuelle = True
-        except Exception:
-          pass
 
         if verification_actuelle:
           st.error(
@@ -420,7 +433,15 @@ if menu == "📝 Faire mon Prono":
 
   if not st.session_state.pronos.empty:
     st.subheader("📋 Tous les pronos enregistrés")
-    st.dataframe(st.session_state.pronos, use_container_width=True)
+    # On retire la colonne "Points" de l'affichage public des pronos
+    colonnes_visibles = [
+        col
+        for col in st.session_state.pronos.columns
+        if col not in ["Points", "Type"]
+    ]
+    st.dataframe(
+        st.session_state.pronos[colonnes_visibles], use_container_width=True
+    )
 
 # --- ONGLET 2 : CLASSEMENT ---
 elif menu == "🏆 Classement":
