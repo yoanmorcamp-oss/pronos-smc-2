@@ -1,5 +1,5 @@
-import base64
 from datetime import datetime
+import os
 import pandas as pd
 import streamlit as st
 
@@ -8,6 +8,7 @@ st.set_page_config(
 )
 
 MOT_DE_PASSE_ADMIN = "yoan"
+FICHIER_DONNEES = "donnees_pronos.csv"
 
 PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
 
@@ -37,8 +38,87 @@ EFFECTIF_SMC = [
     "Autre",
 ]
 
+
+# --- GESTION DE LA PERSISTANCE (SAUVEGARDE FICHIER) ---
+def charger_donnees():
+  if os.path.exists(FICHIER_DONNEES):
+    try:
+      return pd.read_csv(FICHIER_DONNEES)
+    except Exception:
+      pass
+  return pd.DataFrame(
+      columns=[
+          "Type",
+          "ID Match",
+          "Adversaire",
+          "Date",
+          "Heure",
+          "Résultat",
+          "Score Réel",
+          "Buteurs",
+          "Participant",
+          "Match",
+          "Prono (1N2)",
+          "Score",
+          "Buteur",
+          "Doublé ?",
+          "Points",
+          "Points Bonus",
+      ]
+  )
+
+
+def sauvegarder_donnees():
+  # On fusionne Matchs, Pronos et Bonus dans un seul DataFrame plat pour le fichier CSV
+  dfs = []
+  if not st.session_state.matchs.empty:
+    m = st.session_state.matchs.copy()
+    m["Type"] = "MATCH"
+    dfs.append(m)
+  if not st.session_state.pronos.empty:
+    p = st.session_state.pronos.copy()
+    p["Type"] = "PRONO"
+    dfs.append(p)
+  if not st.session_state.bonus.empty:
+    b = st.session_state.bonus.copy()
+    b["Type"] = "BONUS"
+    dfs.append(b)
+
+  if dfs:
+    df_global = pd.concat(dfs, ignore_index=True)
+    df_global.to_csv(FICHIER_DONNEES, index=False)
+
+
 # --- INITIALISATION DE LA MÉMOIRE (SESSION STATE) ---
-if "matchs" not in st.session_state:
+if "donnees_chargees" not in st.session_state:
+  df_load = charger_donnees()
+  st.session_state.matchs = (
+      df_load[df_load["Type"] == "MATCH"]
+      .dropna(how="all", axis=1)
+      .reset_index(drop=True)
+  )
+  st.session_state.pronos = (
+      df_load[df_load["Type"] == "PRONO"]
+      .dropna(how="all", axis=1)
+      .reset_index(drop=True)
+  )
+  st.session_state.bonus = (
+      df_load[df_load["Type"] == "BONUS"]
+      .dropna(how="all", axis=1)
+      .reset_index(drop=True)
+  )
+
+  # Nettoyage des colonnes Type superflues dans les sous-tables si besoin
+  for df_name in ["matchs", "pronos", "bonus"]:
+    if "Type" in getattr(st.session_state, df_name).columns:
+      getattr(st.session_state, df_name).drop(
+          columns=["Type"], inplace=True, errors="ignore"
+      )
+
+  st.session_state.donnees_chargees = True
+
+# S'assurer que les DataFrames ont les bonnes colonnes minimales
+if "matchs" not in st.session_state or st.session_state.matchs.empty:
   st.session_state.matchs = pd.DataFrame(
       columns=[
           "ID Match",
@@ -50,7 +130,6 @@ if "matchs" not in st.session_state:
           "Buteurs",
       ]
   )
-
 if "pronos" not in st.session_state:
   st.session_state.pronos = pd.DataFrame(
       columns=[
@@ -63,7 +142,6 @@ if "pronos" not in st.session_state:
           "Points",
       ]
   )
-
 if "bonus" not in st.session_state:
   st.session_state.bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
 
@@ -107,6 +185,7 @@ def calculer_points():
         points += 3
 
       st.session_state.pronos.loc[idx, "Points"] = points
+  sauvegarder_donnees()
 
 
 # --- DESIGN & UI ---
@@ -172,7 +251,6 @@ if menu == "📝 Faire mon Prono":
         " ajouter un !"
     )
   else:
-    # Affichage clair de tous les matchs dispos pour info sur mobile
     with st.expander("📅 Voir les détails des matchs enregistrés"):
       st.dataframe(st.session_state.matchs, use_container_width=True)
 
@@ -209,7 +287,6 @@ if menu == "📝 Faire mon Prono":
           " rencontre !"
       )
     else:
-      # Remplacement des colonnes côte à côte par un affichage vertical fluide sur mobile
       prono_1n2 = st.selectbox(
           "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
       )
@@ -261,6 +338,7 @@ if menu == "📝 Faire mon Prono":
             )
 
           calculer_points()
+          sauvegarder_donnees()
           st.success("Prono enregistré avec succès !")
           st.rerun()
         else:
@@ -323,6 +401,7 @@ elif menu == "👥 Participants & Bonus":
         st.session_state.bonus = pd.concat(
             [st.session_state.bonus, new_b], ignore_index=True
         )
+      sauvegarder_donnees()
       st.success("Bonus mis à jour !")
       st.rerun()
 
@@ -347,22 +426,20 @@ elif menu == "⚙️ Espace Admin":
         heure_m = st.time_input("Heure du match")
         if st.form_submit_button("Créer le match"):
           if id_m:
+            new_m = pd.DataFrame({
+                "ID Match": [id_m],
+                "Adversaire": [adv],
+                "Date": [str(date_m)],
+                "Heure": [heure_m.strftime("%H:%M")],
+                "Résultat": [""],
+                "Score Réel": [""],
+                "Buteurs": [""],
+            })
             st.session_state.matchs = pd.concat(
-                [
-                    st.session_state.matchs,
-                    pd.DataFrame({
-                        "ID Match": [id_m],
-                        "Adversaire": [adv],
-                        "Date": [str(date_m)],
-                        "Heure": [heure_m.strftime("%H:%M")],
-                        "Résultat": [""],
-                        "Score Réel": [""],
-                        "Buteurs": [""],
-                    }),
-                ],
-                ignore_index=True,
+                [st.session_state.matchs, new_m], ignore_index=True
             )
-            st.success("Match créé avec succès !")
+            sauvegarder_donnees()
+            st.success("Match créé et sauvegardé durablement !")
             st.rerun()
 
     with tab_res:
@@ -404,7 +481,10 @@ elif menu == "⚙️ Espace Admin":
             st.session_state.matchs.loc[idx_m, "Buteurs"] = buteurs_reels
 
             calculer_points()
-            st.success("Résultats enregistrés et points recalculés !")
+            sauvegarder_donnees()
+            st.success(
+                "Résultats enregistrés, points recalculés et sauvegardés !"
+            )
             st.rerun()
 
     st.subheader("Liste des matchs actuels")
