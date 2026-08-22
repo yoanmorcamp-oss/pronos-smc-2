@@ -88,7 +88,6 @@ def calculer_points():
     if not match_info.empty:
       row = match_info.iloc[0]
       res_reel = str(row["Résultat"]).strip()
-      # On nettoie les scores en enlevant tous les espaces et tirets bizarres pour comparer facilement (ex: "2-1" ou "2 - 1")
       score_reel = (
           str(row["Score Réel"]).strip().replace(" ", "").replace("–", "-")
       )
@@ -114,7 +113,6 @@ def calculer_points():
       if buteurs_reels and p_buteur and p_buteur != "nan":
         buteurs_choisis = [b.strip() for b in p_buteur.split(",") if b.strip()]
         for b in buteurs_choisis:
-          # On vérifie si le nom du joueur est inclus dans la liste des buteurs réels
           if b.lower() in buteurs_reels:
             points += 2
 
@@ -263,7 +261,7 @@ menu = st.sidebar.radio(
     [
         "📝 Faire mon Prono",
         "🏆 Classement",
-        "👥 Participants & Bonus",
+        "👥 Participants",
         "⚙️ Espace Admin",
     ],
 )
@@ -431,9 +429,12 @@ elif menu == "🏆 Classement":
     classement_complet["Points Total"] = classement_complet[
         "Points"
     ] + classement_complet["Points Bonus"].astype(int)
+
+    # On ne garde que le nom et le score total final, propre et sans fioriture
     classement_final = (
-        classement_complet[["Participant", "Points Total", "Points Bonus"]]
-        .sort_values(by="Points Total", ascending=False)
+        classement_complet[["Participant", "Points Total"]]
+        .rename(columns={"Points Total": "Points"})
+        .sort_values(by="Points", ascending=False)
         .reset_index(drop=True)
     )
     classement_final.index += 1
@@ -441,36 +442,10 @@ elif menu == "🏆 Classement":
   else:
     st.info("Le classement est vide pour le moment.")
 
-# --- ONGLET 3 : PARTICIPANTS & BONUS ---
-elif menu == "👥 Participants & Bonus":
-  st.header("👥 Gestion des Participants & Bonus")
-  st.write("Participants initiaux :", ", ".join(PARTICIPANTS_INITIAUX))
-
-  st.subheader("Attribution de points bonus (Admin / Spécial)")
-  with st.form("f_bonus"):
-    p_choisi = st.selectbox("Participant", obtenir_liste_participants())
-    pts_bonus = st.number_input("Points Bonus à ajouter", value=0, step=1)
-    if st.form_submit_button("Valider le bonus"):
-      existing_b = st.session_state.bonus[
-          st.session_state.bonus["Participant"] == p_choisi
-      ].index
-      if not existing_b.empty:
-        st.session_state.bonus.loc[
-            existing_b[0], "Points Bonus"
-        ] += int(pts_bonus)
-      else:
-        new_b = pd.DataFrame(
-            {"Participant": [p_choisi], "Points Bonus": [int(pts_bonus)]}
-        )
-        st.session_state.bonus = pd.concat(
-            [st.session_state.bonus, new_b], ignore_index=True
-        )
-      sauvegarder_donnees()
-      st.success("Bonus mis à jour !")
-      st.rerun()
-
-  if not st.session_state.bonus.empty:
-    st.dataframe(st.session_state.bonus, use_container_width=True)
+# --- ONGLET 3 : PARTICIPANTS ---
+elif menu == "👥 Participants":
+  st.header("👥 Liste des Participants")
+  st.write("Participants enregistrés :", ", ".join(obtenir_liste_participants()))
 
 # --- ONGLET 4 : ESPACE ADMIN ---
 elif menu == "⚙️ Espace Admin":
@@ -480,7 +455,11 @@ elif menu == "⚙️ Espace Admin":
   if mdp == MOT_DE_PASSE_ADMIN:
     st.success("Accès autorisé !")
 
-    tab_m, tab_res = st.tabs(["➕ Ajouter un Match", "⚽ Saisir les Résultats"])
+    tab_m, tab_res, tab_pts = st.tabs([
+        "➕ Ajouter un Match",
+        "⚽ Saisir les Résultats",
+        "🎯 Ajouter des points manuellement",
+    ])
 
     with tab_m:
       with st.form("f_match"):
@@ -598,6 +577,38 @@ elif menu == "⚙️ Espace Admin":
             )
             st.rerun()
 
+    with tab_pts:
+      st.write(
+          "Ici, tu peux ajouter des points aux participants (par exemple, pour"
+          " les matchs d'avant l'application)."
+      )
+      with st.form("f_ajout_pts"):
+        p_choisi = st.selectbox(
+            "Choisir le participant", obtenir_liste_participants()
+        )
+        pts_a_ajouter = st.number_input(
+            "Nombre de points à ajouter", value=0, step=1
+        )
+        if st.form_submit_button("Valider et ajouter les points"):
+          existing_b = st.session_state.bonus[
+              st.session_state.bonus["Participant"] == p_choisi
+          ].index
+          if not existing_b.empty:
+            st.session_state.bonus.loc[
+                existing_b[0], "Points Bonus"
+            ] += int(pts_a_ajouter)
+          else:
+            new_b = pd.DataFrame(
+                {"Participant": [p_choisi], "Points Bonus": [int(pts_a_ajouter)]}
+            )
+            st.session_state.bonus = pd.concat(
+                [st.session_state.bonus, new_b], ignore_index=True
+            )
+          sauvegarder_donnees()
+          st.success(f"Points ajoutés avec succès pour {p_choisi} !")
+          st.rerun()
+
+    st.markdown("---")
     st.subheader("Liste des matchs actuels")
     st.dataframe(st.session_state.matchs, use_container_width=True)
 
