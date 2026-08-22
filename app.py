@@ -433,11 +433,9 @@ if menu == "📝 Faire mon Prono":
 
   if not st.session_state.pronos.empty:
     st.subheader("📋 Tous les pronos enregistrés")
-    # On retire la colonne "Points" de l'affichage public des pronos
+    # On cache uniquement la colonne "Points" pour l'affichage visuel, sans toucher au calcul
     colonnes_visibles = [
-        col
-        for col in st.session_state.pronos.columns
-        if col not in ["Points", "Type"]
+        col for col in st.session_state.pronos.columns if col != "Points"
     ]
     st.dataframe(
         st.session_state.pronos[colonnes_visibles], use_container_width=True
