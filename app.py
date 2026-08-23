@@ -88,7 +88,7 @@ def sauvegarder_donnees():
     df_global.to_csv(FICHIER_DONNEES, index=False)
 
 
-# FONCTION DE CALCUL DES POINTS (BARRÈME AJUSTÉ)
+# FONCTION DE CALCUL DES POINTS (CORRIGÉE ET SÉCURISÉE)
 def calculer_points():
   if st.session_state.pronos.empty or st.session_state.matchs.empty:
     return
@@ -117,7 +117,11 @@ def calculer_points():
         compteur_buts_reels[b] = compteur_buts_reels.get(b, 0) + 1
 
       points = 0
-      prono_1n2 = str(p["Prono (1N2)"]).strip()
+      
+      # Nettoyage propre du prono 1N2 (on prend juste le premier caractère 1, N ou 2)
+      prono_1n2_brut = str(p["Prono (1N2)"]).strip()
+      prono_1n2 = prono_1n2_brut.split()[0] if prono_1n2_brut else ""
+
       prono_score = (
           str(p["Score"]).strip().replace(" ", "").replace("–", "-")
       )
@@ -274,8 +278,8 @@ with col2:
     pass
 
 st.markdown(
-    "<h1 style='text-align: center;'>🔴🔵 CONCOURS DE PRONOS - SMC"
-    " 🔵🔴</h1>",
+    "<h1 style='text-align: center;'>⚽ CONCOURS DE PRONOS - SMC"
+    " 🔴🔵</h1>",
     unsafe_allow_html=True,
 )
 st.markdown(
@@ -285,7 +289,7 @@ st.markdown(
 )
 
 menu = st.sidebar.radio(
-    "🧭 Navigation",
+    "📌 Navigation",
     [
         "📝 Faire mon Prono",
         "🏆 Classement",
@@ -316,7 +320,7 @@ def obtenir_liste_participants():
 
 # ONGLET 1 : FAIRE MON PRONO
 if menu == "📝 Faire mon Prono":
-  st.header("🎯 Enregistrer ton Pronostic")
+  st.header("✍️ Enregistrer ton Pronostic")
 
   if st.session_state.matchs.empty:
     st.warning(
@@ -362,7 +366,7 @@ if menu == "📝 Faire mon Prono":
 
     if match_verrouille:
       st.error(
-          "⏳ Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
+          "🔒 Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
           " sont verrouillés pour cette rencontre !"
       )
     else:
@@ -493,7 +497,7 @@ elif menu == "👥 Participants":
 
 # ONGLET 4 : ESPACE ADMIN
 elif menu == "⚙️ Espace Admin":
-  st.header("🔐 Espace Organisateur")
+  st.header("⚙️ Espace Organisateur")
   mdp = st.text_input("Mot de passe administrateur :", type="password")
 
   if mdp == MOT_DE_PASSE_ADMIN:
@@ -501,8 +505,8 @@ elif menu == "⚙️ Espace Admin":
 
     tab_m, tab_res, tab_pts = st.tabs([
         "➕ Ajouter un Match",
-        "⚽ Saisir les Résultats",
-        "🎯 Ajouter des points manuellement",
+        "🎯 Saisir les Résultats",
+        "➕ Ajouter des points manuellement",
     ])
 
     with tab_m:
@@ -665,7 +669,7 @@ elif menu == "⚙️ Espace Admin":
           st.session_state.matchs["ID Match"].tolist(),
           key="select_suppr_match",
       )
-      if st.button("Supprimer ce match définitivement ❌"):
+      if st.button("Supprimer ce match définitivement ?"):
         st.session_state.matchs = st.session_state.matchs[
             st.session_state.matchs["ID Match"] != match_a_supprimer
         ].reset_index(drop=True)
