@@ -1,0 +1,15 @@
+{
+  "name": "Pronos SMC",
+  "short_name": "SMC",
+  "start_url": "https://pronos-smc-2.streamlit.app",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icone.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
