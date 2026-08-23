@@ -114,7 +114,7 @@ def calculer_points():
         compteur_buts_reels[b] = compteur_buts_reels.get(b, 0) + 1
 
       points = 0
-      
+
       prono_1n2_brut = str(p["Prono (1N2)"]).strip()
       prono_1n2 = prono_1n2_brut.split()[0] if prono_1n2_brut else ""
 
