@@ -568,14 +568,77 @@ elif menu == "⚙️ Espace Admin":
               "Score Réel exact (ex: 2-1)", value=score_actuel
           )
 
-          # Remplacement du multiselect par un champ texte libre pour gérer facilement les doublés (ex: "Mandréa, Mandréa")
-          buteurs_texte_final = st.text_input(
-              "Buteurs réels (Sépare-les par des virgules. Pour un doublé, écris"
-              " le nom deux fois, ex: Mendy, Mendy)",
-              value=buteurs_actuels_str,
+          st.markdown(
+              "**Saisie des buteurs réels (jusqu'à 5 buts via listes"
+              " déroulantes) :**"
+          )
+
+          buteurs_deja_la = [
+              b.strip() for b in buteurs_actuels_str.split(",") if b.strip()
+          ]
+          b1_def = buteurs_deja_la[0] if len(buteurs_deja_la) > 0 else "Aucun"
+          b2_def = buteurs_deja_la[1] if len(buteurs_deja_la) > 1 else "Aucun"
+          b3_def = buteurs_deja_la[2] if len(buteurs_deja_la) > 2 else "Aucun"
+          b4_def = buteurs_deja_la[3] if len(buteurs_deja_la) > 3 else "Aucun"
+          b5_def = buteurs_deja_la[4] if len(buteurs_deja_la) > 4 else "Aucun"
+
+          options_buteurs_admin = ["Aucun"] + EFFECTIF_SMC
+
+          def safe_index(val, opts):
+            return opts.index(val) if val in opts else 0
+
+          buteur_1 = st.selectbox(
+              "1er but",
+              options_buteurs_admin,
+              index=safe_index(b1_def, options_buteurs_admin),
+          )
+          buteur_2 = st.selectbox(
+              "2e but",
+              options_buteurs_admin,
+              index=safe_index(b2_def, options_buteurs_admin),
+          )
+          buteur_3 = st.selectbox(
+              "3e but",
+              options_buteurs_admin,
+              index=safe_index(b3_def, options_buteurs_admin),
+          )
+          buteur_4 = st.selectbox(
+              "4e but",
+              options_buteurs_admin,
+              index=safe_index(b4_def, options_buteurs_admin),
+          )
+          buteur_5 = st.selectbox(
+              "5e but",
+              options_buteurs_admin,
+              index=safe_index(b5_def, options_buteurs_admin),
+          )
+
+          autre_buteur_precisions = st.text_input(
+              "Si 'Autre' sélectionné ci-dessus, précise le ou les noms ici"
+              " (séparés par des virgules) :"
           )
 
           if st.form_submit_button("Enregistrer les résultats et calculer"):
+            liste_buts_brute = [
+                buteur_1,
+                buteur_2,
+                buteur_3,
+                buteur_4,
+                buteur_5,
+            ]
+            liste_finale_buteurs = []
+
+            for b in liste_buts_brute:
+              if b and b != "Aucun":
+                liste_finale_buteurs.append(b)
+
+            buteurs_texte_final = ", ".join(liste_finale_buteurs)
+            if autre_buteur_precisions.strip():
+              if buteurs_texte_final:
+                buteurs_texte_final += ", " + autre_buteur_precisions.strip()
+              else:
+                buteurs_texte_final = autre_buteur_precisions.strip()
+
             idx_m = st.session_state.matchs[
                 st.session_state.matchs["ID Match"] == match_a_maj
             ].index[0]
