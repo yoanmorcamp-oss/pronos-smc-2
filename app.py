@@ -124,15 +124,12 @@ def calculer_points():
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
 
-      # 1. Bon 1N2 (+2 points)
       if res_reel and prono_1n2 == res_reel:
         points += 2
 
-      # 2. Bon Score exact (+10 points)
       if score_reel and prono_score == score_reel:
         points += 10
 
-      # 3. Buteurs (+3 points par buteur trouvé)
       buteurs_choisis = [
           b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
       ]
@@ -141,7 +138,6 @@ def calculer_points():
         if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
           points += 3
 
-      # 4. Doublé (+5 si réussi, -3 si raté)
       if p_double and p_double != "Aucun" and p_double != "nan":
         joueur_double_annonce = p_double.lower()
         buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
@@ -572,36 +568,14 @@ elif menu == "⚙️ Espace Admin":
               "Score Réel exact (ex: 2-1)", value=score_actuel
           )
 
-          buteurs_deja_enregistres = [
-              b.strip() for b in buteurs_actuels_str.split(",") if b.strip()
-          ]
-          buteurs_reels_choisis = st.multiselect(
-              "Buteurs réels",
-              EFFECTIF_SMC,
-              default=[
-                  b
-                  for b in buteurs_deja_enregistres
-                  if b in EFFECTIF_SMC
-              ],
+          # Remplacement du multiselect par un champ texte libre pour gérer facilement les doublés (ex: "Mandréa, Mandréa")
+          buteurs_texte_final = st.text_input(
+              "Buteurs réels (Sépare-les par des virgules. Pour un doublé, écris"
+              " le nom deux fois, ex: Mendy, Mendy)",
+              value=buteurs_actuels_str,
           )
 
-          autre_buteur_reel_saisi = ""
-          if "Autre" in buteurs_reels_choisis:
-            autre_buteur_reel_saisi = st.text_input(
-                "Préciser le nom du joueur (si 'Autre' sélectionné pour les"
-                " buts réels) :"
-            )
-
           if st.form_submit_button("Enregistrer les résultats et calculer"):
-            liste_finale_buteurs = []
-            for b in buteurs_reels_choisis:
-              if b == "Autre" and autre_buteur_reel_saisi:
-                liste_finale_buteurs.append(autre_buteur_reel_saisi)
-              elif b != "Autre":
-                liste_finale_buteurs.append(b)
-
-            buteurs_texte_final = ", ".join(liste_finale_buteurs)
-
             idx_m = st.session_state.matchs[
                 st.session_state.matchs["ID Match"] == match_a_maj
             ].index[0]
