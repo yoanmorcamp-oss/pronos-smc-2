@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pronos SMC</title>
-    <!-- On ajoute ?v=2 pour forcer le téléphone à recharger la nouvelle image -->
-    <link rel="apple-touch-icon" sizes="180x180" href="icone.png?v=2">
-    <link rel="icon" type="image/png" href="icone.png?v=2">
     
-    <!-- Redirection vers ton appli Streamlit -->
+    <!-- Lien vers le manifeste PWA pour forcer l'icône -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Paramètres mobiles -->
+    <link rel="apple-touch-icon" sizes="180x180" href="icone.png">
+    <link rel="icon" type="image/png" href="icone.png">
+    
+    <!-- Redirection vers Streamlit -->
     <meta http-equiv="refresh" content="0; url=https://pronos-smc-2.streamlit.app">
 </head>
 <body>
