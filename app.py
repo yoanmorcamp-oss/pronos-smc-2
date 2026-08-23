@@ -124,12 +124,15 @@ def calculer_points():
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
 
+      # 1. Bon 1N2 (+2 points)
       if res_reel and prono_1n2 == res_reel:
         points += 2
 
+      # 2. Bon Score exact (+10 points)
       if score_reel and prono_score == score_reel:
         points += 10
 
+      # 3. Buteurs (+3 points par buteur trouvé)
       buteurs_choisis = [
           b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
       ]
@@ -138,6 +141,7 @@ def calculer_points():
         if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
           points += 3
 
+      # 4. Doublé (+5 si réussi, -3 si raté)
       if p_double and p_double != "Aucun" and p_double != "nan":
         joueur_double_annonce = p_double.lower()
         buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
