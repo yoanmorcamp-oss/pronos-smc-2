@@ -56,27 +56,24 @@ def charger_donnees():
   if os.path.exists(FICHIER_DONNEES):
     try:
       df = pd.read_csv(FICHIER_DONNEES)
-      if "Type" not in df.columns:
-        os.remove(FICHIER_DONNEES)
-        return pd.DataFrame()
-      return df
+      if "Type" in df.columns:
+        return df
     except Exception:
-      if os.path.exists(FICHIER_DONNEES):
-        os.remove(FICHIER_DONNEES)
+      pass
   return pd.DataFrame()
 
 
 def sauvegarder_donnees():
   dfs = []
-  if not st.session_state.matchs.empty:
+  if "matchs" in st.session_state and not st.session_state.matchs.empty:
     m = st.session_state.matchs.copy()
     m["Type"] = "MATCH"
     dfs.append(m)
-  if not st.session_state.pronos.empty:
+  if "pronos" in st.session_state and not st.session_state.pronos.empty:
     p = st.session_state.pronos.copy()
     p["Type"] = "PRONO"
     dfs.append(p)
-  if not st.session_state.bonus.empty:
+  if "bonus" in st.session_state and not st.session_state.bonus.empty:
     b = st.session_state.bonus.copy()
     b["Type"] = "BONUS"
     dfs.append(b)
@@ -87,7 +84,7 @@ def sauvegarder_donnees():
 
 
 def calculer_points():
-  if st.session_state.pronos.empty or st.session_state.matchs.empty:
+  if "pronos" not in st.session_state or st.session_state.pronos.empty or "matchs" not in st.session_state or st.session_state.matchs.empty:
     return
 
   for idx, p in st.session_state.pronos.iterrows():
@@ -154,10 +151,11 @@ def calculer_points():
   sauvegarder_donnees()
 
 
+# Initialisation robuste de l'état avec chargement prioritaire du CSV
 if "donnees_chargees" not in st.session_state:
   df_load = charger_donnees()
 
-  if not df_load.empty and "Type" in df_load.columns:
+  if not df_load.empty:
     st.session_state.matchs = (
         df_load[df_load["Type"] == "MATCH"]
         .drop(columns=["Type"], errors="ignore")
