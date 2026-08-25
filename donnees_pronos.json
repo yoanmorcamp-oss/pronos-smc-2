@@ -35,6 +35,10 @@
         {
             "Participant": "Yoan",
             "Points Bonus": 5
+        },
+        {
+            "Participant": "Tony",
+            "Points Bonus": 0
         }
     ]
 }
