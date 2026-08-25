@@ -651,6 +651,15 @@ elif menu == "⚙️ Espace Admin":
 
     with tab_pts:
       with str_lit.form("f_ajout_pts"):
+        if (
+            str_lit.session_state.bonus.empty
+            or "Participant" not in str_lit.session_state.bonus.columns
+            or "Points Bonus" not in str_lit.session_state.bonus.columns
+        ):
+          str_lit.session_state.bonus = pd.DataFrame(
+              columns=["Participant", "Points Bonus"]
+          )
+
         p_choisi = str_lit.selectbox(
             "Choisir le participant", obtenir_liste_participants()
         )
