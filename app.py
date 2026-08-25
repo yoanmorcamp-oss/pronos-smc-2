@@ -468,10 +468,11 @@ elif menu == "⚙️ Espace Admin":
   if mdp == MOT_DE_PASSE_ADMIN:
     str_lit.success("Accès autorisé !")
 
-    tab_m, tab_res, tab_pts = str_lit.tabs([
+    tab_m, tab_res, tab_pts, tab_suppr = str_lit.tabs([
         "➕ Ajouter un Match",
         "🎯 Saisir les Résultats",
         "➕ Ajouter des points manuellement",
+        "🗑️ Supprimer un Match",
     ])
 
     with tab_m:
@@ -657,6 +658,33 @@ elif menu == "⚙️ Espace Admin":
             )
           sauvegarder_donnees()
           str_lit.success(f"Points ajoutés avec succès pour {p_choisi} !")
+          str_lit.rerun()
+
+    with tab_suppr:
+      if str_lit.session_state.matchs.empty:
+        str_lit.info("Aucun match à supprimer.")
+      else:
+        match_a_supprimer = str_lit.selectbox(
+            "Sélectionner le match à supprimer",
+            str_lit.session_state.matchs["ID Match"].tolist(),
+        )
+        if str_lit.button(
+            "🗑️ Supprimer définitivement ce match", type="primary"
+        ):
+          # Supprimer le match
+          str_lit.session_state.matchs = str_lit.session_state.matchs[
+              str_lit.session_state.matchs["ID Match"] != match_a_supprimer
+          ]
+          # Supprimer aussi les pronos associés à ce match pour éviter les erreurs
+          if not str_lit.session_state.pronos.empty:
+            str_lit.session_state.pronos = str_lit.session_state.pronos[
+                str_lit.session_state.pronos["Match"] != match_a_supprimer
+            ]
+
+          sauvegarder_donnees()
+          str_lit.success(
+              f"Le match '{match_a_supprimer}' a été supprimé avec succès !"
+          )
           str_lit.rerun()
 
     str_lit.markdown("---")
