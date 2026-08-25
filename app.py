@@ -1,8 +1,7 @@
 from datetime import datetime
-import os
 import pandas as pd
-import sqlite3
 import streamlit as str_lit
+from streamlit_gsheets import GSheetsConnection
 from zoneinfo import ZoneInfo
 
 str_lit.set_page_config(
@@ -22,7 +21,11 @@ str_lit.markdown(
 )
 
 MOT_DE_PASSE_ADMIN = "yoan"
-DB_FILE = "pronos_smc.db"
+
+# ⚠️ Mets ici l'URL complète de ton Google Sheet que tu viens de copier
+GOOGLE_SHEET_URL = (
+    "https://docs.google.com/spreadsheets/d/1LMP1ELnq3e-gaM1QQHQq6SDZRhQkRUs52SM8T3OfmGI/edit?usp=sharing"
+)
 
 PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
 
@@ -53,68 +56,24 @@ EFFECTIF_SMC = [
 ]
 
 
-# --- GESTION DE LA BASE DE DONNÉES SQLITE ---
-def init_db():
-  conn = sqlite3.connect(DB_FILE)
-  cursor = conn.cursor()
-  # Table des matchs
-  cursor.execute("""
-        CREATE TABLE IF NOT EXISTS matchs (
-            id_match TEXT PRIMARY KEY,
-            adversaire TEXT,
-            date TEXT,
-            heure TEXT,
-            resultat TEXT,
-            score_reel TEXT,
-            buteurs TEXT
-        )
-    """)
-  # Table des pronos
-  cursor.execute("""
-        CREATE TABLE IF NOT EXISTS pronos (
-            participant TEXT,
-            match TEXT,
-            prono_1n2 TEXT,
-            score TEXT,
-            buteur TEXT,
-            double TEXT,
-            points INTEGER,
-            PRIMARY KEY (participant, match)
-        )
-    """)
-  # Table des bonus / points manuels
-  cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bonus (
-            participant TEXT PRIMARY KEY,
-            points_bonus INTEGER
-        )
-    """)
-  conn.commit()
-  conn.close()
-
-
-def charger_donnees_sql():
-  init_db()
-  conn = sqlite3.connect(DB_FILE)
-  df_matchs = pd.read_sql("SELECT * FROM matchs", conn)
-  df_pronos = pd.read_sql("SELECT * FROM pronos", conn)
-  df_bonus = pd.read_sql("SELECT * FROM bonus", conn)
-  conn.close()
-
-  # Renommer les colonnes pour correspondre au reste du code
-  if not df_matchs.empty:
-    df_matchs = df_matchs.rename(
-        columns={
-            "id_match": "ID Match",
-            "adversaire": "Adversaire",
-            "date": "Date",
-            "heure": "Heure",
-            "resultat": "Résultat",
-            "score_reel": "Score Réel",
-            "buteurs": "Buteurs",
-        }
-    )
-  else:
+# --- GESTION DE LA CONNEXION GOOGLE SHEETS ---
+def charger_donnees_gsheets():
+  conn = str_lit.connection("gsheets", type=GSheetsConnection)
+  try:
+    df_matchs = conn.read(spreadsheet=GOOGLE_SHEET_URL, worksheet="matchs")
+    if df_matchs is None or df_matchs.empty:
+      df_matchs = pd.DataFrame(
+          columns=[
+              "ID Match",
+              "Adversaire",
+              "Date",
+              "Heure",
+              "Résultat",
+              "Score Réel",
+              "Buteurs",
+          ]
+      )
+  except Exception:
     df_matchs = pd.DataFrame(
         columns=[
             "ID Match",
@@ -127,19 +86,21 @@ def charger_donnees_sql():
         ]
     )
 
-  if not df_pronos.empty:
-    df_pronos = df_pronos.rename(
-        columns={
-            "participant": "Participant",
-            "match": "Match",
-            "prono_1n2": "Prono (1N2)",
-            "score": "Score",
-            "buteur": "Buteur",
-            "double": "Doublé ?",
-            "points": "Points",
-        }
-    )
-  else:
+  try:
+    df_pronos = conn.read(spreadsheet=GOOGLE_SHEET_URL, worksheet="pronos")
+    if df_pronos is None or df_pronos.empty:
+      df_pronos = pd.DataFrame(
+          columns=[
+              "Participant",
+              "Match",
+              "Prono (1N2)",
+              "Score",
+              "Buteur",
+              "Doublé ?",
+              "Points",
+          ]
+      )
+  except Exception:
     df_pronos = pd.DataFrame(
         columns=[
             "Participant",
@@ -152,58 +113,41 @@ def charger_donnees_sql():
         ]
     )
 
-  if not df_bonus.empty:
-    df_bonus = df_bonus.rename(
-        columns={
-            "participant": "Participant",
-            "points_bonus": "Points Bonus",
-        }
-    )
-  else:
+  try:
+    df_bonus = conn.read(spreadsheet=GOOGLE_SHEET_URL, worksheet="bonus")
+    if df_bonus is None or df_bonus.empty:
+      df_bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
+  except Exception:
     df_bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
+
+  # Nettoyage des lignes entièrement vides
+  df_matchs = df_matchs.dropna(how="all")
+  df_pronos = df_pronos.dropna(how="all")
+  df_bonus = df_bonus.dropna(how="all")
 
   return df_matchs, df_pronos, df_bonus
 
 
-def sauvegarder_donnees_sql():
-  conn = sqlite3.connect(DB_FILE)
+def sauvegarder_donnees_gsheets():
+  conn = str_lit.connection("gsheets", type=GSheetsConnection)
   if "matchs" in str_lit.session_state:
-    m = str_lit.session_state.matchs.rename(
-        columns={
-            "ID Match": "id_match",
-            "Adversaire": "adversaire",
-            "Date": "date",
-            "Heure": "heure",
-            "Résultat": "resultat",
-            "Score Réel": "score_reel",
-            "Buteurs": "buteurs",
-        }
+    conn.update(
+        spreadsheet=GOOGLE_SHEET_URL,
+        worksheet="matchs",
+        data=str_lit.session_state.matchs,
     )
-    m.to_sql("matchs", conn, if_exists="replace", index=False)
-
   if "pronos" in str_lit.session_state:
-    p = str_lit.session_state.pronos.rename(
-        columns={
-            "Participant": "participant",
-            "Match": "match",
-            "Prono (1N2)": "prono_1n2",
-            "Score": "score",
-            "Buteur": "buteur",
-            "Doublé ?": "double",
-            "Points": "points",
-        }
+    conn.update(
+        spreadsheet=GOOGLE_SHEET_URL,
+        worksheet="pronos",
+        data=str_lit.session_state.pronos,
     )
-    p.to_sql("pronos", conn, if_exists="replace", index=False)
-
   if "bonus" in str_lit.session_state:
-    b = str_lit.session_state.bonus.rename(
-        columns={
-            "Participant": "participant",
-            "Points Bonus": "points_bonus",
-        }
+    conn.update(
+        spreadsheet=GOOGLE_SHEET_URL,
+        worksheet="bonus",
+        data=str_lit.session_state.bonus,
     )
-    b.to_sql("bonus", conn, if_exists="replace", index=False)
-  conn.close()
 
 
 def calculer_points():
@@ -272,12 +216,12 @@ def calculer_points():
     else:
       str_lit.session_state.pronos.loc[idx, "Points"] = 0
 
-  sauvegarder_donnees_sql()
+  sauvegarder_donnees_gsheets()
 
 
-# Chargement initial depuis SQLite
+# Chargement initial depuis Google Sheets
 if "donnees_chargees" not in str_lit.session_state:
-  m_load, p_load, b_load = charger_donnees_sql()
+  m_load, p_load, b_load = charger_donnees_gsheets()
   str_lit.session_state.matchs = m_load
   str_lit.session_state.pronos = p_load
   str_lit.session_state.bonus = b_load
@@ -476,7 +420,7 @@ if menu == "📝 Faire mon Prono":
             )
 
           calculer_points()
-          sauvegarder_donnees_sql()
+          sauvegarder_donnees_gsheets()
           str_lit.success("Prono enregistré avec succès !")
           str_lit.rerun()
 
@@ -561,8 +505,8 @@ elif menu == "⚙️ Espace Admin":
             str_lit.session_state.matchs = pd.concat(
                 [str_lit.session_state.matchs, new_m], ignore_index=True
             )
-            sauvegarder_donnees_sql()
-            str_lit.success("Match créé et sauvegardé durablement !")
+            sauvegarder_donnees_gsheets()
+            str_lit.success("Match créé et sauvegardé dans Google Sheets !")
             str_lit.rerun()
 
     with tab_res:
@@ -696,9 +640,10 @@ elif menu == "⚙️ Espace Admin":
             )
 
             calculer_points()
-            sauvegarder_donnees_sql()
+            sauvegarder_donnees_gsheets()
             str_lit.success(
-                "Résultats enregistrés, points recalculés et sauvegardés !"
+                "Résultats enregistrés, points recalculés et sauvegardés dans"
+                " le Cloud !"
             )
             str_lit.rerun()
 
@@ -729,7 +674,7 @@ elif menu == "⚙️ Espace Admin":
             str_lit.session_state.bonus = pd.concat(
                 [str_lit.session_state.bonus, new_b], ignore_index=True
             )
-          sauvegarder_donnees_sql()
+          sauvegarder_donnees_gsheets()
           str_lit.success(f"Points ajoutés avec succès pour {p_choisi} !")
           str_lit.rerun()
 
@@ -756,7 +701,7 @@ elif menu == "⚙️ Espace Admin":
           ].reset_index(drop=True)
 
         calculer_points()
-        sauvegarder_donnees_sql()
+        sauvegarder_donnees_gsheets()
         str_lit.success(
             f"Le match '{match_a_supprimer}' et ses pronos associés ont bien"
             " été supprimés !"
