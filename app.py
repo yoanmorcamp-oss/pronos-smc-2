@@ -22,7 +22,7 @@ str_lit.markdown(
 
 MOT_DE_PASSE_ADMIN = "yoan"
 
-# ⚠️ Mets ici l'URL complète de ton Google Sheet
+# ⚠️ Vérifie bien que ton URL est entre ces guillemets
 GOOGLE_SHEET_URL = (
     "https://docs.google.com/spreadsheets/d/1LMP1ELnq3e-gaM1QQHQq6SDZRhQkRUs52SM8T3OfmGI/edit?usp=sharing"
 )
@@ -56,45 +56,93 @@ EFFECTIF_SMC = [
 ]
 
 
-# --- CONNEXION DIRECTE GSPREAD ---
-def obtenir_client_gsheets():
-  # Connexion publique simple via l'URL du Google Sheet
-  gc = gspread.no_authorization()
-  return gc.open_by_url(GOOGLE_SHEET_URL)
-
-
+# --- CONNEXION DIRECTE GSPREAD AVEC PARTAGE PUBLIC ---
 def charger_donnees_gsheets():
   try:
-    sh = obtenir_client_gsheets()
-    
+    gc = gspread.no_authorization()
+    sh = gc.open_by_url(GOOGLE_SHEET_URL)
+
     # Chargement Matchs
     ws_matchs = sh.worksheet("matchs")
     data_matchs = ws_matchs.get_all_records()
-    df_matchs = pd.DataFrame(data_matchs) if data_matchs else pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
+    df_matchs = (
+        pd.DataFrame(data_matchs)
+        if data_matchs
+        else pd.DataFrame(
+            columns=[
+                "ID Match",
+                "Adversaire",
+                "Date",
+                "Heure",
+                "Résultat",
+                "Score Réel",
+                "Buteurs",
+            ]
+        )
+    )
 
     # Chargement Pronos
     ws_pronos = sh.worksheet("pronos")
     data_pronos = ws_pronos.get_all_records()
-    df_pronos = pd.DataFrame(data_pronos) if data_pronos else pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
+    df_pronos = (
+        pd.DataFrame(data_pronos)
+        if data_pronos
+        else pd.DataFrame(
+            columns=[
+                "Participant",
+                "Match",
+                "Prono (1N2)",
+                "Score",
+                "Buteur",
+                "Doublé ?",
+                "Points",
+            ]
+        )
+    )
 
     # Chargement Bonus
     ws_bonus = sh.worksheet("bonus")
     data_bonus = ws_bonus.get_all_records()
-    df_bonus = pd.DataFrame(data_bonus) if data_bonus else pd.DataFrame(columns=["Participant", "Points Bonus"])
+    df_bonus = (
+        pd.DataFrame(data_bonus)
+        if data_bonus
+        else pd.DataFrame(columns=["Participant", "Points Bonus"])
+    )
 
     return df_matchs, df_pronos, df_bonus
   except Exception as e:
-    # Si les onglets sont vides, on renvoie des dataframes vides propres
-    df_m = pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
-    df_p = pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
+    str_lit.error(f"Erreur de lecture Google Sheets : {e}")
+    df_m = pd.DataFrame(
+        columns=[
+            "ID Match",
+            "Adversaire",
+            "Date",
+            "Heure",
+            "Résultat",
+            "Score Réel",
+            "Buteurs",
+        ]
+    )
+    df_p = pd.DataFrame(
+        columns=[
+            "Participant",
+            "Match",
+            "Prono (1N2)",
+            "Score",
+            "Buteur",
+            "Doublé ?",
+            "Points",
+        ]
+    )
     df_b = pd.DataFrame(columns=["Participant", "Points Bonus"])
     return df_m, df_p, df_b
 
 
 def sauvegarder_donnees_gsheets():
   try:
-    sh = obtenir_client_gsheets()
-    
+    gc = gspread.no_authorization()
+    sh = gc.open_by_url(GOOGLE_SHEET_URL)
+
     if "matchs" in str_lit.session_state:
       ws = sh.worksheet("matchs")
       ws.clear()
@@ -116,7 +164,7 @@ def sauvegarder_donnees_gsheets():
       if not df.empty:
         ws.update([df.columns.values.tolist()] + df.values.tolist())
   except Exception as e:
-    str_lit.error(f"Erreur lors de la sauvegarde cloud : {e}")
+    str_lit.error(f"Erreur de sauvegarde Google Sheets : {e}")
 
 
 def calculer_points():
@@ -188,7 +236,7 @@ def calculer_points():
   sauvegarder_donnees_gsheets()
 
 
-# Chargement initial depuis Google Sheets
+# Chargement initial
 if "donnees_chargees" not in str_lit.session_state:
   m_load, p_load, b_load = charger_donnees_gsheets()
   str_lit.session_state.matchs = m_load
@@ -262,8 +310,8 @@ if menu == "📝 Faire mon Prono":
 
   if str_lit.session_state.matchs.empty:
     str_lit.warning(
-        "⚠️ Aucun match créé pour l'instant. Va dans l'Espace Admin pour en"
-        " ajouter un !"
+        "⚠️ Aucun match trouvé. Va dans l'Espace Admin pour vérifier ou force"
+        " la synchronisation !"
     )
   else:
     with str_lit.expander("📅 Voir les détails des matchs enregistrés"):
@@ -447,6 +495,15 @@ elif menu == "⚙️ Espace Admin":
 
   if mdp == MOT_DE_PASSE_ADMIN:
     str_lit.success("Accès autorisé !")
+
+    # Bouton magique pour forcer la synchronisation avec le Google Sheet
+    if str_lit.button("🔄 Recharger les données depuis Google Sheets"):
+      m_load, p_load, b_load = charger_donnees_gsheets()
+      str_lit.session_state.matchs = m_load
+      str_lit.session_state.pronos = p_load
+      str_lit.session_state.bonus = b_load
+      str_lit.success("Données rechargées avec succès depuis Google Sheets !")
+      str_lit.rerun()
 
     tab_m, tab_res, tab_pts = str_lit.tabs([
         "➕ Ajouter un Match",
