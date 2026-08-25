@@ -1,15 +1,5 @@
 {
-    "matchs": [
-        {
-            "ID Match": "test",
-            "Adversaire": "test",
-            "Date": "2026-08-25",
-            "Heure": "23:30",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
-        }
-    ],
+    "matchs": [],
     "pronos": [],
     "bonus": [
         {
