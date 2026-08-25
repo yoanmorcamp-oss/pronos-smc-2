@@ -11,5 +11,10 @@
         }
     ],
     "pronos": [],
-    "bonus": []
+    "bonus": [
+        {
+            "Participant": "Adri",
+            "Points Bonus": 5
+        }
+    ]
 }
