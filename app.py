@@ -62,7 +62,6 @@ def get_github_repo():
     if "GITHUB_TOKEN" in str_lit.secrets:
       token = str_lit.secrets["GITHUB_TOKEN"]
       g = Github(token)
-      # Récupère le nom du repo depuis le contexte ou les secrets (ex: "ton-pseudo/ton-repo")
       repo_name = str_lit.secrets.get("GITHUB_REPO", "")
       if repo_name:
         return g.get_repo(repo_name)
@@ -71,7 +70,7 @@ def get_github_repo():
     return None
 
 
-def charger_donnees_depuis_ github():
+def charger_donnees_depuis_github():
   repo = get_github_repo()
   if repo:
     try:
