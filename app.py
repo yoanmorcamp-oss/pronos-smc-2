@@ -1,6 +1,5 @@
 from datetime import datetime
 import pandas as pd
-import gspread
 import streamlit as str_lit
 from zoneinfo import ZoneInfo
 
@@ -22,11 +21,6 @@ str_lit.markdown(
 )
 
 MOT_DE_PASSE_ADMIN = "yoan"
-
-# URL de ton Google Sheet
-GOOGLE_SHEET_URL = (
-    "https://docs.google.com/spreadsheets/d/1LMP1ELnq3e-gaM1QQHQq6SDZRhQkRUs52SM8T3OfmGI/edit?usp=sharing"  # Remplace par ton URL exacte si besoin
-)
 
 PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
 
@@ -57,110 +51,41 @@ EFFECTIF_SMC = [
 ]
 
 
-# --- CONNEXION GSPREAD ---
-def obtenir_feuille():
-  gc = gspread.no_authorization()
-  return gc.open_by_url(GOOGLE_SHEET_URL)
+# --- INITIALISATION DE LA SESSION STATE ---
+if "matchs" not in str_lit.session_state:
+  str_lit.session_state.matchs = pd.DataFrame(
+      columns=[
+          "ID Match",
+          "Adversaire",
+          "Date",
+          "Heure",
+          "Résultat",
+          "Score Réel",
+          "Buteurs",
+      ]
+  )
 
+if "pronos" not in str_lit.session_state:
+  str_lit.session_state.pronos = pd.DataFrame(
+      columns=[
+          "Participant",
+          "Match",
+          "Prono (1N2)",
+          "Score",
+          "Buteur",
+          "Doublé ?",
+          "Points",
+      ]
+  )
 
-def charger_donnees_gsheets():
-  try:
-    sh = obtenir_feuille()
-    df_matchs = pd.DataFrame(sh.worksheet("matchs").get_all_records())
-    df_pronos = pd.DataFrame(sh.worksheet("pronos").get_all_records())
-    df_bonus = pd.DataFrame(sh.worksheet("bonus").get_all_records())
-
-    if df_matchs.empty:
-      df_matchs = pd.DataFrame(
-          columns=[
-              "ID Match",
-              "Adversaire",
-              "Date",
-              "Heure",
-              "Résultat",
-              "Score Réel",
-              "Buteurs",
-          ]
-      )
-    if df_pronos.empty:
-      df_pronos = pd.DataFrame(
-          columns=[
-              "Participant",
-              "Match",
-              "Prono (1N2)",
-              "Score",
-              "Buteur",
-              "Doublé ?",
-              "Points",
-          ]
-      )
-    if df_bonus.empty:
-      df_bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
-
-    return df_matchs, df_pronos, df_bonus
-  except Exception as e:
-    str_lit.error(f"Erreur de lecture : {e}")
-    return (
-        pd.DataFrame(
-            columns=[
-                "ID Match",
-                "Adversaire",
-                "Date",
-                "Heure",
-                "Résultat",
-                "Score Réel",
-                "Buteurs",
-            ]
-        ),
-        pd.DataFrame(
-            columns=[
-                "Participant",
-                "Match",
-                "Prono (1N2)",
-                "Score",
-                "Buteur",
-                "Doublé ?",
-                "Points",
-            ]
-        ),
-        pd.DataFrame(columns=["Participant", "Points Bonus"]),
-    )
-
-
-def sauvegarder_donnees_gsheets():
-  try:
-    sh = obtenir_feuille()
-    if "matchs" in str_lit.session_state:
-      ws = sh.worksheet("matchs")
-      ws.clear()
-      df = str_lit.session_state.matchs
-      if not df.empty:
-        ws.update([df.columns.values.tolist()] + df.values.tolist())
-
-    if "pronos" in str_lit.session_state:
-      ws = sh.worksheet("pronos")
-      ws.clear()
-      df = str_lit.session_state.pronos
-      if not df.empty:
-        ws.update([df.columns.values.tolist()] + df.values.tolist())
-
-    if "bonus" in str_lit.session_state:
-      ws = sh.worksheet("bonus")
-      ws.clear()
-      df = str_lit.session_state.bonus
-      if not df.empty:
-        ws.update([df.columns.values.tolist()] + df.values.tolist())
-  except Exception as e:
-    str_lit.error(f"Erreur de sauvegarde : {e}")
+if "bonus" not in str_lit.session_state:
+  str_lit.session_state.bonus = pd.DataFrame(
+      columns=["Participant", "Points Bonus"]
+  )
 
 
 def calculer_points():
-  if (
-      "pronos" not in str_lit.session_state
-      or str_lit.session_state.pronos.empty
-      or "matchs" not in str_lit.session_state
-      or str_lit.session_state.matchs.empty
-  ):
+  if str_lit.session_state.pronos.empty or str_lit.session_state.matchs.empty:
     return
 
   for idx, p in str_lit.session_state.pronos.iterrows():
@@ -220,16 +145,6 @@ def calculer_points():
     else:
       str_lit.session_state.pronos.loc[idx, "Points"] = 0
 
-  sauvegarder_donnees_gsheets()
-
-
-# Chargement initial dans la session
-if "donnees_chargees" not in str_lit.session_state:
-  m_load, p_load, b_load = charger_donnees_gsheets()
-  str_lit.session_state.matchs = m_load
-  str_lit.session_state.pronos = p_load
-  str_lit.session_state.bonus = b_load
-  str_lit.session_state.donnees_chargees = True
 
 calculer_points()
 
@@ -301,8 +216,7 @@ if menu == "📝 Faire mon Prono":
 
   if str_lit.session_state.matchs.empty:
     str_lit.warning(
-        "⚠️ Aucun match trouvé. Va dans l'Espace Admin pour vérifier ou recharger"
-        " les données !"
+        "⚠️ Aucun match trouvé. Va dans l'Espace Admin pour créer un match !"
     )
   else:
     with str_lit.expander("📅 Voir les détails des matchs enregistrés"):
@@ -408,7 +322,6 @@ if menu == "📝 Faire mon Prono":
             )
 
           calculer_points()
-          sauvegarder_donnees_gsheets()
           str_lit.success("Prono enregistré avec succès !")
           str_lit.rerun()
 
@@ -470,14 +383,6 @@ elif menu == "⚙️ Espace Admin":
   if mdp == MOT_DE_PASSE_ADMIN:
     str_lit.success("Accès autorisé !")
 
-    if str_lit.button("🔄 Recharger les données depuis Google Sheets"):
-      m_load, p_load, b_load = charger_donnees_gsheets()
-      str_lit.session_state.matchs = m_load
-      str_lit.session_state.pronos = p_load
-      str_lit.session_state.bonus = b_load
-      str_lit.success("Données rechargées avec succès depuis Google Sheets !")
-      str_lit.rerun()
-
     tab_m, tab_res, tab_pts = str_lit.tabs([
         "➕ Ajouter un Match",
         "🎯 Saisir les Résultats",
@@ -504,8 +409,7 @@ elif menu == "⚙️ Espace Admin":
             str_lit.session_state.matchs = pd.concat(
                 [str_lit.session_state.matchs, new_m], ignore_index=True
             )
-            sauvegarder_donnees_gsheets()
-            str_lit.success("Match créé et sauvegardé dans Google Sheets !")
+            str_lit.success("Match créé avec succès !")
             str_lit.rerun()
 
     with tab_res:
@@ -638,7 +542,6 @@ elif menu == "⚙️ Espace Admin":
             )
 
             calculer_points()
-            sauvegarder_donnees_gsheets()
             str_lit.success("Résultats enregistrés et points recalculés !")
             str_lit.rerun()
 
@@ -665,7 +568,6 @@ elif menu == "⚙️ Espace Admin":
             str_lit.session_state.bonus = pd.concat(
                 [str_lit.session_state.bonus, new_b], ignore_index=True
             )
-          sauvegarder_donnees_gsheets()
           str_lit.success(f"Points ajoutés avec succès pour {p_choisi} !")
           str_lit.rerun()
 
