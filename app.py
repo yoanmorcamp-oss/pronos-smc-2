@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 from zoneinfo import ZoneInfo
@@ -303,112 +303,128 @@ if menu == "📝 Faire mon Prono":
         "⚠️ Aucun match trouvé. Va dans l'Espace Admin pour créer un match !"
     )
   else:
-    with str_lit.expander("📅 Voir les détails des matchs enregistrés"):
-      str_lit.dataframe(
-          str_lit.session_state.matchs, use_container_width=True
-      )
+    # Filtrer les matchs visibles (disponibles 6 jours avant)
+    matchs_visibles = []
+    tz_paris = ZoneInfo("Europe/Paris")
+    maintenant = datetime.now(tz_paris)
 
-    matchs_disponibles = str_lit.session_state.matchs["ID Match"].tolist()
-    choix_participant = str_lit.selectbox(
-        "Pseudo", obtenir_liste_participants() + ["➕ Nouveau"]
-    )
-    nom_utilisateur = (
-        str_lit.text_input("Nouveau pseudo :")
-        if choix_participant == "➕ Nouveau"
-        else choix_participant
-    )
-    match_choisi = str_lit.selectbox("Sélectionne le match", matchs_disponibles)
+    for _, row in str_lit.session_state.matchs.iterrows():
+      try:
+        d_str = str(row["Date"]).strip()
+        h_str = str(row["Heure"]).strip()
+        match_dt = datetime.strptime(f"{d_str} {h_str}", "%Y-%m-%d %H:%M").replace(
+            tzinfo=tz_paris
+        )
+        ouverture_pronos = match_dt - timedelta(days=6)
+        if maintenant >= ouverture_pronos:
+          matchs_visibles.append(row["ID Match"])
+      except Exception:
+        matchs_visibles.append(row["ID Match"])  # Fallback si erreur de date
 
-    match_ligne = str_lit.session_state.matchs[
-        str_lit.session_state.matchs["ID Match"] == match_choisi
-    ].iloc[0]
-    date_str = str(match_ligne["Date"]).strip()
-    heure_str = str(match_ligne["Heure"]).strip()
-
-    match_verrouille = False
-    try:
-      tz_paris = ZoneInfo("Europe/Paris")
-      maintenant = datetime.now(tz_paris)
-      match_datetime = datetime.strptime(
-          f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
-      ).replace(tzinfo=tz_paris)
-      if maintenant >= match_datetime:
-        match_verrouille = True
-    except Exception:
-      match_datetime = datetime.strptime(
-          f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
-      )
-      if datetime.now() >= match_datetime:
-        match_verrouille = True
-
-    if match_verrouille:
-      str_lit.error(
-          "🔒 Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
-          " sont verrouillés pour cette rencontre !"
+    if not matchs_visibles:
+      str_lit.info(
+          "⏳ Aucun match ouvert aux pronostics pour le moment (les matchs"
+          " s'ouvrent 6 jours avant la rencontre)."
       )
     else:
-      prono_1n2 = str_lit.selectbox(
-          "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
+      choix_participant = str_lit.selectbox(
+          "Pseudo", obtenir_liste_participants() + ["➕ Nouveau"]
       )
-      prono_score = str_lit.text_input("Score exact (ex: 2-0)")
-      buteurs_selectionnes = str_lit.multiselect("Buteurs", EFFECTIF_SMC)
+      nom_utilisateur = (
+          str_lit.text_input("Nouveau pseudo :")
+          if choix_participant == "➕ Nouveau"
+          else choix_participant
+      )
+      match_choisi = str_lit.selectbox("Sélectionne le match", matchs_visibles)
 
-      if "Autre" in buteurs_selectionnes:
-        autre_buteur_saisi = str_lit.text_input(
-            "Préciser le nom du joueur (si 'Autre' sélectionné) :"
+      match_ligne = str_lit.session_state.matchs[
+          str_lit.session_state.matchs["ID Match"] == match_choisi
+      ].iloc[0]
+      date_str = str(match_ligne["Date"]).strip()
+      heure_str = str(match_ligne["Heure"]).strip()
+
+      match_verrouille = False
+      try:
+        match_datetime = datetime.strptime(
+            f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
+        ).replace(tzinfo=tz_paris)
+        if maintenant >= match_datetime:
+          match_verrouille = True
+      except Exception:
+        match_datetime = datetime.strptime(
+            f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
         )
-        if autre_buteur_saisi:
-          buteurs_selectionnes = [
-              b if b != "Autre" else autre_buteur_saisi
-              for b in buteurs_selectionnes
-          ]
+        if datetime.now() >= match_datetime:
+          match_verrouille = True
 
-      options_double = ["Aucun"] + buteurs_selectionnes
-      annonce_double = str_lit.selectbox(
-          "Doublé ?", options_double if options_double else ["Aucun"]
-      )
+      if match_verrouille:
+        str_lit.error(
+            "🔒 Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
+            " sont verrouillés pour cette rencontre !"
+        )
+      else:
+        prono_1n2 = str_lit.selectbox(
+            "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
+        )
+        prono_score = str_lit.text_input("Score exact (ex: 2-0)")
+        buteurs_selectionnes = str_lit.multiselect("Buteurs", EFFECTIF_SMC)
 
-      if str_lit.button("Valider mon Prono 🚀"):
-        if not nom_utilisateur:
-          str_lit.error("Merci d'indiquer un pseudo.")
-        else:
-          choix_clean = str(prono_1n2.split()[0])
-          buteurs_texte_str = str(", ".join(buteurs_selectionnes))
+        if "Autre" in buteurs_selectionnes:
+          autre_buteur_saisi = str_lit.text_input(
+              "Préciser le nom du joueur (si 'Autre' sélectionné) :"
+          )
+          if autre_buteur_saisi:
+            buteurs_selectionnes = [
+                b if b != "Autre" else autre_buteur_saisi
+                for b in buteurs_selectionnes
+            ]
 
-          existing_idx = str_lit.session_state.pronos[
-              (
-                  str_lit.session_state.pronos["Participant"]
-                  == str(nom_utilisateur)
-              )
-              & (str_lit.session_state.pronos["Match"] == str(match_choisi))
-          ].index
+        options_double = ["Aucun"] + buteurs_selectionnes
+        annonce_double = str_lit.selectbox(
+            "Doublé ?", options_double if options_double else ["Aucun"]
+        )
 
-          if not existing_idx.empty:
-            idx = existing_idx[0]
-            str_lit.session_state.pronos.loc[idx, "Prono (1N2)"] = choix_clean
-            str_lit.session_state.pronos.loc[idx, "Score"] = str(prono_score)
-            str_lit.session_state.pronos.loc[idx, "Buteur"] = buteurs_texte_str
-            str_lit.session_state.pronos.loc[idx, "Doublé ?"] = str(
-                annonce_double
-            )
+        if str_lit.button("Valider mon Prono 🚀"):
+          if not nom_utilisateur:
+            str_lit.error("Merci d'indiquer un pseudo.")
           else:
-            new_row = pd.DataFrame({
-                "Participant": [str(nom_utilisateur)],
-                "Match": [str(match_choisi)],
-                "Prono (1N2)": [choix_clean],
-                "Score": [str(prono_score)],
-                "Buteur": [buteurs_texte_str],
-                "Doublé ?": [str(annonce_double)],
-                "Points": [0],
-            })
-            str_lit.session_state.pronos = pd.concat(
-                [str_lit.session_state.pronos, new_row], ignore_index=True
-            )
+            choix_clean = str(prono_1n2.split()[0])
+            buteurs_texte_str = str(", ".join(buteurs_selectionnes))
 
-          calculer_points()
-          sauvegarder_donnees()
-          str_lit.success("Prono enregistré avec succès !")
-          str_lit.rerun()
+            existing_idx = str_lit.session_state.pronos[
+                (
+                    str_lit.session_state.pronos["Participant"]
+                    == str(nom_utilisateur)
+                )
+                & (str_lit.session_state.pronos["Match"] == str(match_choisi))
+            ].index
+
+            if not existing_idx.empty:
+              idx = existing_idx[0]
+              str_lit.session_state.pronos.loc[idx, "Prono (1N2)"] = choix_clean
+              str_lit.session_state.pronos.loc[idx, "Score"] = str(prono_score)
+              str_lit.session_state.pronos.loc[idx, "Buteur"] = buteurs_texte_str
+              str_lit.session_state.pronos.loc[idx, "Doublé ?"] = str(
+                  annonce_double
+              )
+            else:
+              new_row = pd.DataFrame({
+                  "Participant": [str(nom_utilisateur)],
+                  "Match": [str(match_choisi)],
+                  "Prono (1N2)": [choix_clean],
+                  "Score": [str(prono_score)],
+                  "Buteur": [buteurs_texte_str],
+                  "Doublé ?": [str(annonce_double)],
+                  "Points": [0],
+              })
+              str_lit.session_state.pronos = pd.concat(
+                  [str_lit.session_state.pronos, new_row], ignore_index=True
+              )
+
+            calculer_points()
+            sauvegarder_donnees()
+            str_lit.success("Prono enregistré avec succès !")
+            str_lit.rerun()
 
   if not str_lit.session_state.pronos.empty:
     str_lit.subheader("📋 Tous les pronos enregistrés")
@@ -671,11 +687,9 @@ elif menu == "⚙️ Espace Admin":
         if str_lit.button(
             "🗑️ Supprimer définitivement ce match", type="primary"
         ):
-          # Supprimer le match
           str_lit.session_state.matchs = str_lit.session_state.matchs[
               str_lit.session_state.matchs["ID Match"] != match_a_supprimer
           ]
-          # Supprimer aussi les pronos associés à ce match pour éviter les erreurs
           if not str_lit.session_state.pronos.empty:
             str_lit.session_state.pronos = str_lit.session_state.pronos[
                 str_lit.session_state.pronos["Match"] != match_a_supprimer
