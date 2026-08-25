@@ -71,58 +71,84 @@ def get_github_repo():
 
 
 def charger_donnees_depuis_github():
+  df_matchs = pd.DataFrame(
+      columns=[
+          "ID Match",
+          "Adversaire",
+          "Date",
+          "Heure",
+          "Résultat",
+          "Score Réel",
+          "Buteurs",
+      ]
+  )
+  df_pronos = pd.DataFrame(
+      columns=[
+          "Participant",
+          "Match",
+          "Prono (1N2)",
+          "Score",
+          "Buteur",
+          "Doublé ?",
+          "Points",
+      ]
+  )
+  df_bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
+
+  data = None
   repo = get_github_repo()
   if repo:
     try:
       file_content = repo.get_contents(FICHIER_JSON)
       data = json.loads(file_content.decoded_content.decode("utf-8"))
-      return (
-          pd.DataFrame(data.get("matchs", [])),
-          pd.DataFrame(data.get("pronos", [])),
-          pd.DataFrame(data.get("bonus", [])),
-      )
     except Exception:
       pass
 
-  # Fallback local si pas sur Streamlit Cloud ou pas de token
-  if os.path.exists(FICHIER_JSON):
+  if data is None and os.path.exists(FICHIER_JSON):
     try:
       with open(FICHIER_JSON, "r", encoding="utf-8") as f:
         data = json.load(f)
-        return (
-            pd.DataFrame(data.get("matchs", [])),
-            pd.DataFrame(data.get("pronos", [])),
-            pd.DataFrame(data.get("bonus", [])),
-        )
     except Exception:
       pass
 
-  # Par défaut si rien n'existe
-  return (
-      pd.DataFrame(
-          columns=[
-              "ID Match",
-              "Adversaire",
-              "Date",
-              "Heure",
-              "Résultat",
-              "Score Réel",
-              "Buteurs",
-          ]
-      ),
-      pd.DataFrame(
-          columns=[
-              "Participant",
-              "Match",
-              "Prono (1N2)",
-              "Score",
-              "Buteur",
-              "Doublé ?",
-              "Points",
-          ]
-      ),
-      pd.DataFrame(columns=["Participant", "Points Bonus"]),
-  )
+  if data:
+    if "matchs" in data and data["matchs"]:
+      df_matchs = pd.DataFrame(data["matchs"])
+    if "pronos" in data and data["pronos"]:
+      df_pronos = pd.DataFrame(data["pronos"])
+    if "bonus" in data and data["bonus"]:
+      df_bonus = pd.DataFrame(data["bonus"])
+
+  # S'assurer que toutes les colonnes requises existent
+  for col in [
+      "ID Match",
+      "Adversaire",
+      "Date",
+      "Heure",
+      "Résultat",
+      "Score Réel",
+      "Buteurs",
+  ]:
+    if col not in df_matchs.columns:
+      df_matchs[col] = ""
+
+  for col in [
+      "Participant",
+      "Match",
+      "Prono (1N2)",
+      "Score",
+      "Buteur",
+      "Doublé ?",
+      "Points",
+  ]:
+    if col not in df_pronos.columns:
+      df_pronos[col] = ""
+
+  for col in ["Participant", "Points Bonus"]:
+    if col not in df_bonus.columns:
+      df_bonus[col] = ""
+
+  return df_matchs, df_pronos, df_bonus
 
 
 def sauvegarder_donnees():
