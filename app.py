@@ -1,7 +1,7 @@
 from datetime import datetime
 import pandas as pd
+import gspread
 import streamlit as str_lit
-from streamlit_gsheets import GSheetsConnection
 from zoneinfo import ZoneInfo
 
 str_lit.set_page_config(
@@ -22,7 +22,7 @@ str_lit.markdown(
 
 MOT_DE_PASSE_ADMIN = "yoan"
 
-# ⚠️ Mets ici l'URL complète de ton Google Sheet que tu viens de copier
+# ⚠️ Mets ici l'URL complète de ton Google Sheet
 GOOGLE_SHEET_URL = (
     "https://docs.google.com/spreadsheets/d/1LMP1ELnq3e-gaM1QQHQq6SDZRhQkRUs52SM8T3OfmGI/edit?usp=sharing"
 )
@@ -56,98 +56,67 @@ EFFECTIF_SMC = [
 ]
 
 
-# --- GESTION DE LA CONNEXION GOOGLE SHEETS ---
+# --- CONNEXION DIRECTE GSPREAD ---
+def obtenir_client_gsheets():
+  # Connexion publique simple via l'URL du Google Sheet
+  gc = gspread.no_authorization()
+  return gc.open_by_url(GOOGLE_SHEET_URL)
+
+
 def charger_donnees_gsheets():
-  conn = str_lit.connection("gsheets", type=GSheetsConnection)
   try:
-    df_matchs = conn.read(spreadsheet=GOOGLE_SHEET_URL, worksheet="matchs")
-    if df_matchs is None or df_matchs.empty:
-      df_matchs = pd.DataFrame(
-          columns=[
-              "ID Match",
-              "Adversaire",
-              "Date",
-              "Heure",
-              "Résultat",
-              "Score Réel",
-              "Buteurs",
-          ]
-      )
-  except Exception:
-    df_matchs = pd.DataFrame(
-        columns=[
-            "ID Match",
-            "Adversaire",
-            "Date",
-            "Heure",
-            "Résultat",
-            "Score Réel",
-            "Buteurs",
-        ]
-    )
+    sh = obtenir_client_gsheets()
+    
+    # Chargement Matchs
+    ws_matchs = sh.worksheet("matchs")
+    data_matchs = ws_matchs.get_all_records()
+    df_matchs = pd.DataFrame(data_matchs) if data_matchs else pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
 
-  try:
-    df_pronos = conn.read(spreadsheet=GOOGLE_SHEET_URL, worksheet="pronos")
-    if df_pronos is None or df_pronos.empty:
-      df_pronos = pd.DataFrame(
-          columns=[
-              "Participant",
-              "Match",
-              "Prono (1N2)",
-              "Score",
-              "Buteur",
-              "Doublé ?",
-              "Points",
-          ]
-      )
-  except Exception:
-    df_pronos = pd.DataFrame(
-        columns=[
-            "Participant",
-            "Match",
-            "Prono (1N2)",
-            "Score",
-            "Buteur",
-            "Doublé ?",
-            "Points",
-        ]
-    )
+    # Chargement Pronos
+    ws_pronos = sh.worksheet("pronos")
+    data_pronos = ws_pronos.get_all_records()
+    df_pronos = pd.DataFrame(data_pronos) if data_pronos else pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
 
-  try:
-    df_bonus = conn.read(spreadsheet=GOOGLE_SHEET_URL, worksheet="bonus")
-    if df_bonus is None or df_bonus.empty:
-      df_bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
-  except Exception:
-    df_bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
+    # Chargement Bonus
+    ws_bonus = sh.worksheet("bonus")
+    data_bonus = ws_bonus.get_all_records()
+    df_bonus = pd.DataFrame(data_bonus) if data_bonus else pd.DataFrame(columns=["Participant", "Points Bonus"])
 
-  # Nettoyage des lignes entièrement vides
-  df_matchs = df_matchs.dropna(how="all")
-  df_pronos = df_pronos.dropna(how="all")
-  df_bonus = df_bonus.dropna(how="all")
-
-  return df_matchs, df_pronos, df_bonus
+    return df_matchs, df_pronos, df_bonus
+  except Exception as e:
+    # Si les onglets sont vides, on renvoie des dataframes vides propres
+    df_m = pd.DataFrame(columns=["ID Match", "Adversaire", "Date", "Heure", "Résultat", "Score Réel", "Buteurs"])
+    df_p = pd.DataFrame(columns=["Participant", "Match", "Prono (1N2)", "Score", "Buteur", "Doublé ?", "Points"])
+    df_b = pd.DataFrame(columns=["Participant", "Points Bonus"])
+    return df_m, df_p, df_b
 
 
 def sauvegarder_donnees_gsheets():
-  conn = str_lit.connection("gsheets", type=GSheetsConnection)
-  if "matchs" in str_lit.session_state:
-    conn.update(
-        spreadsheet=GOOGLE_SHEET_URL,
-        worksheet="matchs",
-        data=str_lit.session_state.matchs,
-    )
-  if "pronos" in str_lit.session_state:
-    conn.update(
-        spreadsheet=GOOGLE_SHEET_URL,
-        worksheet="pronos",
-        data=str_lit.session_state.pronos,
-    )
-  if "bonus" in str_lit.session_state:
-    conn.update(
-        spreadsheet=GOOGLE_SHEET_URL,
-        worksheet="bonus",
-        data=str_lit.session_state.bonus,
-    )
+  try:
+    sh = obtenir_client_gsheets()
+    
+    if "matchs" in str_lit.session_state:
+      ws = sh.worksheet("matchs")
+      ws.clear()
+      df = str_lit.session_state.matchs
+      if not df.empty:
+        ws.update([df.columns.values.tolist()] + df.values.tolist())
+
+    if "pronos" in str_lit.session_state:
+      ws = sh.worksheet("pronos")
+      ws.clear()
+      df = str_lit.session_state.pronos
+      if not df.empty:
+        ws.update([df.columns.values.tolist()] + df.values.tolist())
+
+    if "bonus" in str_lit.session_state:
+      ws = sh.worksheet("bonus")
+      ws.clear()
+      df = str_lit.session_state.bonus
+      if not df.empty:
+        ws.update([df.columns.values.tolist()] + df.values.tolist())
+  except Exception as e:
+    str_lit.error(f"Erreur lors de la sauvegarde cloud : {e}")
 
 
 def calculer_points():
