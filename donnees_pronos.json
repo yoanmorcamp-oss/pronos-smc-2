@@ -19,6 +19,10 @@
         {
             "Participant": "Allan",
             "Points Bonus": 8
+        },
+        {
+            "Participant": "Jo",
+            "Points Bonus": 11
         }
     ]
 }
