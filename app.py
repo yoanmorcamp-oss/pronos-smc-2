@@ -1,7 +1,10 @@
 from datetime import datetime
+import json
+import os
+from zoneinfo import ZoneInfo
 import pandas as pd
 import streamlit as str_lit
-from zoneinfo import ZoneInfo
+from github import Github, GithubException
 
 # --- CONFIGURATION DE LA PAGE ---
 str_lit.set_page_config(
@@ -21,7 +24,6 @@ str_lit.markdown(
 )
 
 MOT_DE_PASSE_ADMIN = "yoan"
-
 PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
 
 EFFECTIF_SMC = [
@@ -50,38 +52,121 @@ EFFECTIF_SMC = [
     "Autre",
 ]
 
+FICHIER_JSON = "donnees_pronos.json"
+
+# --- CONNEXION GITHUB POUR LA PERSISTANCE ---
+
+
+def get_github_repo():
+  try:
+    if "GITHUB_TOKEN" in str_lit.secrets:
+      token = str_lit.secrets["GITHUB_TOKEN"]
+      g = Github(token)
+      # Récupère le nom du repo depuis le contexte ou les secrets (ex: "ton-pseudo/ton-repo")
+      repo_name = str_lit.secrets.get("GITHUB_REPO", "")
+      if repo_name:
+        return g.get_repo(repo_name)
+    return None
+  except Exception:
+    return None
+
+
+def charger_donnees_depuis_ github():
+  repo = get_github_repo()
+  if repo:
+    try:
+      file_content = repo.get_contents(FICHIER_JSON)
+      data = json.loads(file_content.decoded_content.decode("utf-8"))
+      return (
+          pd.DataFrame(data.get("matchs", [])),
+          pd.DataFrame(data.get("pronos", [])),
+          pd.DataFrame(data.get("bonus", [])),
+      )
+    except Exception:
+      pass
+
+  # Fallback local si pas sur Streamlit Cloud ou pas de token
+  if os.path.exists(FICHIER_JSON):
+    try:
+      with open(FICHIER_JSON, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        return (
+            pd.DataFrame(data.get("matchs", [])),
+            pd.DataFrame(data.get("pronos", [])),
+            pd.DataFrame(data.get("bonus", [])),
+        )
+    except Exception:
+      pass
+
+  # Par défaut si rien n'existe
+  return (
+      pd.DataFrame(
+          columns=[
+              "ID Match",
+              "Adversaire",
+              "Date",
+              "Heure",
+              "Résultat",
+              "Score Réel",
+              "Buteurs",
+          ]
+      ),
+      pd.DataFrame(
+          columns=[
+              "Participant",
+              "Match",
+              "Prono (1N2)",
+              "Score",
+              "Buteur",
+              "Doublé ?",
+              "Points",
+          ]
+      ),
+      pd.DataFrame(columns=["Participant", "Points Bonus"]),
+  )
+
+
+def sauvegarder_donnees():
+  data = {
+      "matchs": str_lit.session_state.matchs.to_dict(orient="records"),
+      "pronos": str_lit.session_state.pronos.to_dict(orient="records"),
+      "bonus": str_lit.session_state.bonus.to_dict(orient="records"),
+  }
+  json_string = json.dumps(data, ensure_ascii=False, indent=4)
+
+  # Sauvegarde locale
+  with open(FICHIER_JSON, "w", encoding="utf-8") as f:
+    f.write(json_string)
+
+  # Sauvegarde sur GitHub
+  repo = get_github_repo()
+  if repo:
+    try:
+      file = repo.get_contents(FICHIER_JSON)
+      repo.update_file(
+          FICHIER_JSON,
+          "Mise à jour automatique des pronos",
+          json_string,
+          file.sha,
+      )
+    except GithubException:
+      try:
+        repo.create_file(
+            FICHIER_JSON,
+            "Création du fichier de données des pronos",
+            json_string,
+        )
+      except Exception:
+        pass
+
 
 # --- INITIALISATION DE LA SESSION STATE ---
-if "matchs" not in str_lit.session_state:
-  str_lit.session_state.matchs = pd.DataFrame(
-      columns=[
-          "ID Match",
-          "Adversaire",
-          "Date",
-          "Heure",
-          "Résultat",
-          "Score Réel",
-          "Buteurs",
-      ]
-  )
-
-if "pronos" not in str_lit.session_state:
-  str_lit.session_state.pronos = pd.DataFrame(
-      columns=[
-          "Participant",
-          "Match",
-          "Prono (1N2)",
-          "Score",
-          "Buteur",
-          "Doublé ?",
-          "Points",
-      ]
-  )
-
-if "bonus" not in str_lit.session_state:
-  str_lit.session_state.bonus = pd.DataFrame(
-      columns=["Participant", "Points Bonus"]
-  )
+if "donnees_chargees" not in str_lit.session_state:
+  m, p, b = charger_donnees_depuis_github()
+  str_lit.session_state.matchs = m
+  str_lit.session_state.pronos = p
+  str_lit.session_state.bonus = b
+  str_lit.session_state.donnees_chargees = True
 
 
 def calculer_points():
@@ -322,6 +407,7 @@ if menu == "📝 Faire mon Prono":
             )
 
           calculer_points()
+          sauvegarder_donnees()
           str_lit.success("Prono enregistré avec succès !")
           str_lit.rerun()
 
@@ -409,6 +495,7 @@ elif menu == "⚙️ Espace Admin":
             str_lit.session_state.matchs = pd.concat(
                 [str_lit.session_state.matchs, new_m], ignore_index=True
             )
+            sauvegarder_donnees()
             str_lit.success("Match créé avec succès !")
             str_lit.rerun()
 
@@ -542,6 +629,7 @@ elif menu == "⚙️ Espace Admin":
             )
 
             calculer_points()
+            sauvegarder_donnees()
             str_lit.success("Résultats enregistrés et points recalculés !")
             str_lit.rerun()
 
@@ -568,6 +656,7 @@ elif menu == "⚙️ Espace Admin":
             str_lit.session_state.bonus = pd.concat(
                 [str_lit.session_state.bonus, new_b], ignore_index=True
             )
+          sauvegarder_donnees()
           str_lit.success(f"Points ajoutés avec succès pour {p_choisi} !")
           str_lit.rerun()
 
