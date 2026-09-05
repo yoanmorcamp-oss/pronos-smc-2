@@ -24,7 +24,7 @@ str_lit.markdown(
 )
 
 MOT_DE_PASSE_ADMIN = "yoan"
-PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
+PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Axel", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
 
 EFFECTIF_SMC = [
     "Anthony Mandréa",
