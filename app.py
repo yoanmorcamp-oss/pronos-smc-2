@@ -119,7 +119,6 @@ def charger_donnees_depuis_github():
     if "bonus" in data and data["bonus"]:
       df_bonus = pd.DataFrame(data["bonus"])
 
-  # S'assurer que toutes les colonnes requises existent
   for col in [
       "ID Match",
       "Adversaire",
@@ -159,11 +158,9 @@ def sauvegarder_donnees():
   }
   json_string = json.dumps(data, ensure_ascii=False, indent=4)
 
-  # Sauvegarde locale
   with open(FICHIER_JSON, "w", encoding="utf-8") as f:
     f.write(json_string)
 
-  # Sauvegarde sur GitHub
   repo = get_github_repo()
   if repo:
     try:
@@ -230,11 +227,15 @@ def calculer_points():
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
 
+      # 1N2 correct (+2 pts)
       if res_reel and prono_1n2 == res_reel:
         points += 2
-      if score_reel and prono_score == score_reel:
+
+      # Score exact correct (+10 pts)
+      if score_reel and prono_score and prono_score == score_reel:
         points += 10
 
+      # Buteurs corrects (+3 pts par buteur)
       buteurs_choisis = [
           b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
       ]
@@ -243,6 +244,7 @@ def calculer_points():
         if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
           points += 3
 
+      # Doublé (+5 pts ou -3 pts)
       if p_double and p_double != "Aucun" and p_double != "nan":
         joueur_double_annonce = p_double.lower()
         buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
@@ -329,7 +331,6 @@ if menu == "📝 Faire mon Prono":
         "⚠️ Aucun match trouvé. Va dans l'Espace Admin pour créer un match !"
     )
   else:
-    # Filtrer les matchs visibles (disponibles 6 jours avant)
     matchs_visibles = []
     tz_paris = ZoneInfo("Europe/Paris")
     maintenant = datetime.now(tz_paris)
@@ -342,10 +343,18 @@ if menu == "📝 Faire mon Prono":
             tzinfo=tz_paris
         )
         ouverture_pronos = match_dt - timedelta(days=6)
-        if maintenant >= ouverture_pronos:
+        fermeture_affichage = match_dt + timedelta(
+            hours=2
+        )  # Masque le match 2h après le début
+
+        if ouverture_pronos <= maintenant <= fermeture_affichage:
           matchs_visibles.append(row["ID Match"])
       except Exception:
-        matchs_visibles.append(row["ID Match"])  # Fallback si erreur de date
+        matchs_visibles.append(row["ID Match"])
+
+    # Fallback pour ne pas bloquer si aucun match n'est dans la fenêtre exacte
+    if not matchs_visibles and not str_lit.session_state.matchs.empty:
+      matchs_visibles = [str_lit.session_state.matchs.iloc[-1]["ID Match"]]
 
     if not matchs_visibles:
       str_lit.info(
@@ -452,15 +461,55 @@ if menu == "📝 Faire mon Prono":
             str_lit.success("Prono enregistré avec succès !")
             str_lit.rerun()
 
-  if not str_lit.session_state.pronos.empty:
-    str_lit.subheader("📋 Tous les pronos enregistrés")
-    colonnes_visibles = [
-        col for col in str_lit.session_state.pronos.columns if col != "Points"
+      # --- SECTION : SUIVI DES PRONOS POUR CE MATCH ---
+      str_lit.markdown("---")
+      str_lit.subheader(f"📊 Suivi des pronos pour : {match_choisi}")
+
+      tous_les_participants = obtenir_liste_participants()
+      pronos_ce_match = (
+          str_lit.session_state.pronos[
+              str_lit.session_state.pronos["Match"] == match_choisi
+          ]
+          if not str_lit.session_state.pronos.empty
+          and "Match" in str_lit.session_state.pronos.columns
+          else pd.DataFrame()
+      )
+      participants_ayant_pronostique = (
+          pronos_ce_match["Participant"].tolist()
+          if not pronos_ce_match.empty
+          and "Participant" in pronos_ce_match.columns
+          else []
+      )
+
+      suivi_data = []
+      for p in tous_les_participants:
+        if p in participants_ayant_pronostique:
+          suivi_data.append(
+              {"Participant": p, "Statut": "✅ A pronostiqué 🎯"}
+          )
+        else:
+          suivi_data.append({"Participant": p, "Statut": "❌ En attente ⏳"})
+
+      df_suivi = pd.DataFrame(suivi_data)
+      str_lit.dataframe(df_suivi, use_container_width=True)
+
+  # --- HISTORIQUE FILTRÉ POUR N'AFFICHER QUE LE MATCH DU MOMENT ---
+  if not str_lit.session_state.pronos.empty and "match_choisi" in locals():
+    str_lit.markdown("---")
+    str_lit.subheader(f"📋 Pronos enregistrés pour ce match ({match_choisi})")
+    pronos_du_match_actuel = str_lit.session_state.pronos[
+        str_lit.session_state.pronos["Match"] == match_choisi
     ]
-    str_lit.dataframe(
-        str_lit.session_state.pronos[colonnes_visibles],
-        use_container_width=True,
-    )
+    if not pronos_du_match_actuel.empty:
+      colonnes_visibles = [
+          col for col in pronos_du_match_actuel.columns if col != "Points"
+      ]
+      str_lit.dataframe(
+          pronos_du_match_actuel[colonnes_visibles],
+          use_container_width=True,
+      )
+    else:
+      str_lit.info("Aucun prono enregistré pour ce match pour l'instant.")
 
 # --- 2. CLASSEMENT ---
 elif menu == "🏆 Classement":
