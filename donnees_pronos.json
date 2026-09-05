@@ -87,8 +87,8 @@
             "Participant": "Adri",
             "Match": "FBBP-CAEN",
             "Prono (1N2)": "1",
-            "Score": "2/0",
-            "Buteur": "Keelyan Portut, Fahd El Khoumisti",
+            "Score": "2/1",
+            "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
             "Points": 0
         },
@@ -100,6 +100,15 @@
             "Buteur": "Fahd El Khoumisti, Mohamed Hafid",
             "Doublé ?": "Fahd El Khoumisti",
             "Points": -3
+        },
+        {
+            "Participant": "Yoan",
+            "Match": "FBBP-CAEN",
+            "Prono (1N2)": "1",
+            "Score": "2-1",
+            "Buteur": "Fahd El Khoumisti, Ivann Botella",
+            "Doublé ?": "Aucun",
+            "Points": 0
         }
     ],
     "bonus": [
