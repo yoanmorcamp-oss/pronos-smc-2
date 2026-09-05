@@ -14,9 +14,9 @@
             "Adversaire": "Bourg Perronas",
             "Date": "2026-09-05",
             "Heure": "14:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "1",
+            "Score Réel": "2-0",
+            "Buteurs": "Fahd El Khoumisti, Fahd El Khoumisti"
         }
     ],
     "pronos": [
@@ -90,7 +90,7 @@
             "Score": "2/1",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Vincent",
@@ -99,7 +99,7 @@
             "Score": "3-1",
             "Buteur": "Fahd El Khoumisti, Mohamed Hafid",
             "Doublé ?": "Fahd El Khoumisti",
-            "Points": -3
+            "Points": 10
         },
         {
             "Participant": "Yoan",
@@ -108,7 +108,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Ivann Botella",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Nathéo",
@@ -117,7 +117,7 @@
             "Score": "2/0",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         }
     ],
     "bonus": [
