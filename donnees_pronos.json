@@ -23,9 +23,9 @@
             "Adversaire": "Paris 13 Atletico",
             "Date": "2026-09-12",
             "Heure": "14:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "1",
+            "Score Réel": "2/0",
+            "Buteurs": "Josué Kimboma, Fahd El Khoumisti"
         }
     ],
     "pronos": [
@@ -135,7 +135,7 @@
             "Score": "2/0",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 15
         },
         {
             "Participant": "Vincent",
@@ -144,7 +144,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Ivann Botella",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Adri",
@@ -153,7 +153,7 @@
             "Score": "3-0",
             "Buteur": "Mohamed Hafid, Fahd El Khoumisti",
             "Doublé ?": "Fahd El Khoumisti",
-            "Points": -3
+            "Points": 2
         },
         {
             "Participant": "Yoan",
@@ -162,7 +162,7 @@
             "Score": "3-0",
             "Buteur": "Fahd El Khoumisti, Ivann Botella, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Axel",
@@ -171,7 +171,7 @@
             "Score": "3-1",
             "Buteur": "Fahd El Khoumisti, Mohamed Hafid, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Allan",
@@ -180,7 +180,7 @@
             "Score": "2-0",
             "Buteur": "Fahd El Khoumisti, Mohamed Hafid",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Jo",
@@ -189,7 +189,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         }
     ],
     "bonus": [
