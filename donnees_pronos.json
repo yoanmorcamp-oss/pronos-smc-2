@@ -199,6 +199,15 @@
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
             "Points": 5
+        },
+        {
+            "Participant": "Yoan",
+            "Match": "Concarneau-Caen",
+            "Prono (1N2)": "N",
+            "Score": "1-1",
+            "Buteur": "Ivann Botella",
+            "Doublé ?": "Aucun",
+            "Points": 0
         }
     ],
     "bonus": [
