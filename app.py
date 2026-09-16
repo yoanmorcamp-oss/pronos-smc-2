@@ -24,7 +24,7 @@ str_lit.markdown(
 )
 
 MOT_DE_PASSE_ADMIN = "yoan"
-PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Axel", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
+PARTICIPANTS_INITIAUX = ["Nathéo", "Adri", "Allan", "Jo", "Vincent", "Tony", "Yoan"]
 
 EFFECTIF_SMC = [
     "Anthony Mandréa",
@@ -461,9 +461,15 @@ if menu == "📝 Faire mon Prono":
             str_lit.success("Prono enregistré avec succès !")
             str_lit.rerun()
 
-      # --- SECTION : SUIVI DES PRONOS POUR CE MATCH ---
+      # --- SECTION : SUIVI DU STATUT DES PRONOS (SANS AFFICHER LES CHOIX) ---
       str_lit.markdown("---")
-      str_lit.subheader(f"📊 Suivi des pronos pour : {match_choisi}")
+      str_lit.subheader(
+          f"📊 Suivi des validations pour le match : {match_choisi}"
+      )
+      str_lit.info(
+          "💡 Seul le statut (qui a pronostiqué ou non) est affiché ici. Les"
+          " choix des joueurs restent secrets jusqu'au coup d'envoi !"
+      )
 
       tous_les_participants = obtenir_liste_participants()
       pronos_ce_match = (
@@ -492,24 +498,6 @@ if menu == "📝 Faire mon Prono":
 
       df_suivi = pd.DataFrame(suivi_data)
       str_lit.dataframe(df_suivi, use_container_width=True)
-
-  # --- HISTORIQUE FILTRÉ POUR N'AFFICHER QUE LE MATCH DU MOMENT ---
-  if not str_lit.session_state.pronos.empty and "match_choisi" in locals():
-    str_lit.markdown("---")
-    str_lit.subheader(f"📋 Pronos enregistrés pour ce match ({match_choisi})")
-    pronos_du_match_actuel = str_lit.session_state.pronos[
-        str_lit.session_state.pronos["Match"] == match_choisi
-    ]
-    if not pronos_du_match_actuel.empty:
-      colonnes_visibles = [
-          col for col in pronos_du_match_actuel.columns if col != "Points"
-      ]
-      str_lit.dataframe(
-          pronos_du_match_actuel[colonnes_visibles],
-          use_container_width=True,
-      )
-    else:
-      str_lit.info("Aucun prono enregistré pour ce match pour l'instant.")
 
 # --- 2. CLASSEMENT ---
 elif menu == "🏆 Classement":
