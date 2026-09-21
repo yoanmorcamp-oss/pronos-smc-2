@@ -94,6 +94,7 @@ def charger_donnees_depuis_github():
       ]
   )
   df_bonus = pd.DataFrame(columns=["Participant", "Points Bonus"])
+  passwords_dict = {}
 
   data = None
   repo = get_github_repo()
@@ -118,6 +119,8 @@ def charger_donnees_depuis_github():
       df_pronos = pd.DataFrame(data["pronos"])
     if "bonus" in data and data["bonus"]:
       df_bonus = pd.DataFrame(data["bonus"])
+    if "passwords" in data and data["passwords"]:
+      passwords_dict = data["passwords"]
 
   for col in [
       "ID Match",
@@ -147,7 +150,7 @@ def charger_donnees_depuis_github():
     if col not in df_bonus.columns:
       df_bonus[col] = ""
 
-  return df_matchs, df_pronos, df_bonus
+  return df_matchs, df_pronos, df_bonus, passwords_dict
 
 
 def sauvegarder_donnees():
@@ -155,6 +158,7 @@ def sauvegarder_donnees():
       "matchs": str_lit.session_state.matchs.to_dict(orient="records"),
       "pronos": str_lit.session_state.pronos.to_dict(orient="records"),
       "bonus": str_lit.session_state.bonus.to_dict(orient="records"),
+      "passwords": str_lit.session_state.passwords,
   }
   json_string = json.dumps(data, ensure_ascii=False, indent=4)
 
@@ -184,10 +188,11 @@ def sauvegarder_donnees():
 
 # --- INITIALISATION DE LA SESSION STATE ---
 if "donnees_chargees" not in str_lit.session_state:
-  m, p, b = charger_donnees_depuis_github()
+  m, p, b, pw = charger_donnees_depuis_github()
   str_lit.session_state.matchs = m
   str_lit.session_state.pronos = p
   str_lit.session_state.bonus = b
+  str_lit.session_state.passwords = pw
   str_lit.session_state.donnees_chargees = True
 
 
@@ -352,7 +357,6 @@ if menu == "📝 Faire mon Prono":
       except Exception:
         matchs_visibles.append(row["ID Match"])
 
-    # Fallback pour ne pas bloquer si aucun match n'est dans la fenêtre exacte
     if not matchs_visibles and not str_lit.session_state.matchs.empty:
       matchs_visibles = [str_lit.session_state.matchs.iloc[-1]["ID Match"]]
 
@@ -365,77 +369,139 @@ if menu == "📝 Faire mon Prono":
       choix_participant = str_lit.selectbox(
           "Pseudo", obtenir_liste_participants() + ["➕ Nouveau"]
       )
-      nom_utilisateur = (
-          str_lit.text_input("Nouveau pseudo :")
-          if choix_participant == "➕ Nouveau"
-          else choix_participant
-      )
-      match_choisi = str_lit.selectbox("Sélectionne le match", matchs_visibles)
 
-      match_ligne = str_lit.session_state.matchs[
-          str_lit.session_state.matchs["ID Match"] == match_choisi
-      ].iloc[0]
-      date_str = str(match_ligne["Date"]).strip()
-      heure_str = str(match_ligne["Heure"]).strip()
+      nom_utilisateur = ""
+      acces_autorise = False
 
-      match_verrouille = False
-      try:
-        match_datetime = datetime.strptime(
-            f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
-        ).replace(tzinfo=tz_paris)
-        if maintenant >= match_datetime:
-          match_verrouille = True
-      except Exception:
-        match_datetime = datetime.strptime(
-            f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
-        )
-        if datetime.now() >= match_datetime:
-          match_verrouille = True
-
-      if match_verrouille:
-        str_lit.error(
-            "🔒 Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
-            " sont verrouillés pour cette rencontre !"
-        )
-      else:
-        prono_1n2 = str_lit.selectbox(
-            "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
-        )
-        prono_score = str_lit.text_input("Score exact (ex: 2-0)")
-        buteurs_selectionnes = str_lit.multiselect("Buteurs", EFFECTIF_SMC)
-
-        if "Autre" in buteurs_selectionnes:
-          autre_buteur_saisi = str_lit.text_input(
-              "Préciser le nom du joueur (si 'Autre' sélectionné) :"
+      if choix_participant == "➕ Nouveau":
+        nom_utilisateur = str_lit.text_input("Nouveau pseudo :").strip()
+        if nom_utilisateur:
+          mdp_nouveau = str_lit.text_input(
+              "Crée ton mot de passe personnel :", type="password"
           )
-          if autre_buteur_saisi:
-            buteurs_selectionnes = [
-                b if b != "Autre" else autre_buteur_saisi
-                for b in buteurs_selectionnes
-            ]
+          if str_lit.button("Valider la création du profil"):
+            if nom_utilisateur in obtenir_liste_participants():
+              str_lit.error("Ce pseudo existe déjà !")
+            elif not mdp_nouveau:
+              str_lit.error("Veuillez entrer un mot de passe.")
+            else:
+              str_lit.session_state.passwords[nom_utilisateur] = mdp_nouveau
+              sauvegarder_donnees()
+              str_lit.success(
+                  "Profil créé ! Tu peux maintenant faire tes pronos."
+              )
+              str_lit.rerun()
+      else:
+        nom_utilisateur = choix_participant
+        # Vérification du mot de passe
+        if nom_utilisateur not in str_lit.session_state.passwords:
+          # Premier passage pour ce participant existant sans MDP
+          str_lit.info(
+              f"🔒 C'est ta première connexion avec ce pseudo ({nom_utilisateur})."
+              " Crée ton mot de passe personnel :"
+          )
+          mdp_creation = str_lit.text_input(
+              "Nouveau mot de passe :", type="password", key="pwd_create"
+          )
+          if str_lit.button("Enregistrer mon mot de passe"):
+            if mdp_creation:
+              str_lit.session_state.passwords[nom_utilisateur] = mdp_creation
+              sauvegarder_donnees()
+              str_lit.success(
+                  "Mot de passe enregistré ! Rafraîchissement..."
+              )
+              str_lit.rerun()
+            else:
+              str_lit.error("Le mot de passe ne peut pas être vide.")
+        else:
+          mdp_saisi = str_lit.text_input(
+              f"Mot de passe pour {nom_utilisateur} :",
+              type="password",
+              key="pwd_login",
+          )
+          if (
+              mdp_saisi
+              == str_lit.session_state.passwords[nom_utilisateur]
+          ):
+            acces_autorise = True
+          elif mdp_saisi != "":
+            str_lit.error("Mot de passe incorrect.")
 
-        options_double = ["Aucun"] + buteurs_selectionnes
-        annonce_double = str_lit.selectbox(
-            "Doublé ?", options_double if options_double else ["Aucun"]
-        )
+      # Si l'utilisateur est authentifié, on affiche le formulaire de prono et son prono actuel
+      if acces_autorise and nom_utilisateur:
+        match_choisi = str_lit.selectbox("Sélectionne le match", matchs_visibles)
 
-        if str_lit.button("Valider mon Prono 🚀"):
-          if not nom_utilisateur:
-            str_lit.error("Merci d'indiquer un pseudo.")
-          else:
+        match_ligne = str_lit.session_state.matchs[
+            str_lit.session_state.matchs["ID Match"] == match_choisi
+        ].iloc[0]
+        date_str = str(match_ligne["Date"]).strip()
+        heure_str = str(match_ligne["Heure"]).strip()
+
+        match_verrouille = False
+        try:
+          match_datetime = datetime.strptime(
+              f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
+          ).replace(tzinfo=tz_paris)
+          if maintenant >= match_datetime:
+            match_verrouille = True
+        except Exception:
+          match_datetime = datetime.strptime(
+              f"{date_str} {heure_str}", "%Y-%m-%d %H:%M"
+          )
+          if datetime.now() >= match_datetime:
+            match_verrouille = True
+
+        # --- Affichage du prono actuel de l'utilisateur pour ce match s'il existe ---
+        existing_prono_row = str_lit.session_state.pronos[
+            (str_lit.session_state.pronos["Participant"] == nom_utilisateur)
+            & (str_lit.session_state.pronos["Match"] == match_choisi)
+        ]
+
+        if not existing_prono_row.empty:
+          r = existing_prono_row.iloc[0]
+          str_lit.info(
+              f"📌 **Ton prono actuel pour ce match** — 1N2 : **{r['Prono (1N2)']}**"
+              f" | Score : **{r['Score']}** | Buteur(s) : **{r['Buteur']}** |"
+              f" Doublé : **{r['Doublé ?']}**"
+          )
+        else:
+          str_lit.warning(
+              "⚠️ Tu n'as pas encore enregistré de pronostic pour ce match."
+          )
+
+        if match_verrouille:
+          str_lit.error(
+              "🔒 Ce match a déjà commencé (ou l'horaire est dépassé). Les pronos"
+              " sont verrouillés pour cette rencontre !"
+          )
+        else:
+          prono_1n2 = str_lit.selectbox(
+              "1N2", ["1 (Victoire Caen)", "N (Nul)", "2 (Défaite)"]
+          )
+          prono_score = str_lit.text_input("Score exact (ex: 2-0)")
+          buteurs_selectionnes = str_lit.multiselect("Buteurs", EFFECTIF_SMC)
+
+          if "Autre" in buteurs_selectionnes:
+            autre_buteur_saisi = str_lit.text_input(
+                "Préciser le nom du joueur (si 'Autre' sélectionné) :"
+            )
+            if autre_buteur_saisi:
+              buteurs_selectionnes = [
+                  b if b != "Autre" else autre_buteur_saisi
+                  for b in buteurs_selectionnes
+              ]
+
+          options_double = ["Aucun"] + buteurs_selectionnes
+          annonce_double = str_lit.selectbox(
+              "Doublé ?", options_double if options_double else ["Aucun"]
+          )
+
+          if str_lit.button("Valider / Modifier mon Prono 🚀"):
             choix_clean = str(prono_1n2.split()[0])
             buteurs_texte_str = str(", ".join(buteurs_selectionnes))
 
-            existing_idx = str_lit.session_state.pronos[
-                (
-                    str_lit.session_state.pronos["Participant"]
-                    == str(nom_utilisateur)
-                )
-                & (str_lit.session_state.pronos["Match"] == str(match_choisi))
-            ].index
-
-            if not existing_idx.empty:
-              idx = existing_idx[0]
+            if not existing_prono_row.empty:
+              idx = existing_prono_row.index[0]
               str_lit.session_state.pronos.loc[idx, "Prono (1N2)"] = choix_clean
               str_lit.session_state.pronos.loc[idx, "Score"] = str(prono_score)
               str_lit.session_state.pronos.loc[idx, "Buteur"] = buteurs_texte_str
@@ -461,43 +527,43 @@ if menu == "📝 Faire mon Prono":
             str_lit.success("Prono enregistré avec succès !")
             str_lit.rerun()
 
-      # --- SECTION : SUIVI DU STATUT DES PRONOS (SANS AFFICHER LES CHOIX) ---
-      str_lit.markdown("---")
-      str_lit.subheader(
-          f"📊 Suivi des validations pour le match : {match_choisi}"
-      )
-      str_lit.info(
-          "💡 Seul le statut (qui a pronostiqué ou non) est affiché ici. Les"
-          " choix des joueurs restent secrets jusqu'au coup d'envoi !"
-      )
+        # --- SECTION : SUIVI DU STATUT DES PRONOS (SANS AFFICHER LES CHOIX DES AUTRES) ---
+        str_lit.markdown("---")
+        str_lit.subheader(
+            f"📊 Suivi des validations pour le match : {match_choisi}"
+        )
+        str_lit.info(
+            "💡 Seul le statut (qui a pronostiqué ou non) est affiché ici. Les"
+            " choix des joueurs restent secrets jusqu'au coup d'envoi !"
+        )
 
-      tous_les_participants = obtenir_liste_participants()
-      pronos_ce_match = (
-          str_lit.session_state.pronos[
-              str_lit.session_state.pronos["Match"] == match_choisi
-          ]
-          if not str_lit.session_state.pronos.empty
-          and "Match" in str_lit.session_state.pronos.columns
-          else pd.DataFrame()
-      )
-      participants_ayant_pronostique = (
-          pronos_ce_match["Participant"].tolist()
-          if not pronos_ce_match.empty
-          and "Participant" in pronos_ce_match.columns
-          else []
-      )
+        tous_les_participants = obtenir_liste_participants()
+        pronos_ce_match = (
+            str_lit.session_state.pronos[
+                str_lit.session_state.pronos["Match"] == match_choisi
+            ]
+            if not str_lit.session_state.pronos.empty
+            and "Match" in str_lit.session_state.pronos.columns
+            else pd.DataFrame()
+        )
+        participants_ayant_pronostique = (
+            pronos_ce_match["Participant"].tolist()
+            if not pronos_ce_match.empty
+            and "Participant" in pronos_ce_match.columns
+            else []
+        )
 
-      suivi_data = []
-      for p in tous_les_participants:
-        if p in participants_ayant_pronostique:
-          suivi_data.append(
-              {"Participant": p, "Statut": "✅ A pronostiqué 🎯"}
-          )
-        else:
-          suivi_data.append({"Participant": p, "Statut": "❌ En attente ⏳"})
+        suivi_data = []
+        for p in tous_les_participants:
+          if p in participants_ayant_pronostique:
+            suivi_data.append(
+                {"Participant": p, "Statut": "✅ A pronostiqué 🎯"}
+            )
+          else:
+            suivi_data.append({"Participant": p, "Statut": "❌ En attente ⏳"})
 
-      df_suivi = pd.DataFrame(suivi_data)
-      str_lit.dataframe(df_suivi, use_container_width=True)
+        df_suivi = pd.DataFrame(suivi_data)
+        str_lit.dataframe(df_suivi, use_container_width=True)
 
 # --- 2. CLASSEMENT ---
 elif menu == "🏆 Classement":
