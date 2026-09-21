@@ -262,6 +262,15 @@
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
             "Points": 0
+        },
+        {
+            "Participant": "Nathéo",
+            "Match": "SMC-ROUEN",
+            "Prono (1N2)": "1",
+            "Score": "3/1",
+            "Buteur": "Fahd El Khoumisti, Keelyan Portut",
+            "Doublé ?": "Fahd El Khoumisti",
+            "Points": -3
         }
     ],
     "bonus": [
