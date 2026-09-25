@@ -41,9 +41,9 @@
             "Adversaire": "FC ROUEN ",
             "Date": "2026-09-24",
             "Heure": "20:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "1",
+            "Score Réel": "3-2",
+            "Buteurs": "Dennis Appiah, Armand Gnanduillet, Armand Gnanduillet"
         }
     ],
     "pronos": [
@@ -270,7 +270,7 @@
             "Score": "2/1",
             "Buteur": "Fahd El Khoumisti",
             "Doublé ?": "Fahd El Khoumisti",
-            "Points": -3
+            "Points": -1
         },
         {
             "Participant": "Adri",
@@ -279,7 +279,7 @@
             "Score": "3-2",
             "Buteur": "Fahd El Khoumisti, Léo Milliner",
             "Doublé ?": "Fahd El Khoumisti",
-            "Points": -3
+            "Points": 9
         },
         {
             "Participant": "Vincent",
@@ -288,7 +288,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 2
         },
         {
             "Participant": "Jo",
@@ -297,7 +297,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 2
         },
         {
             "Participant": "Allan",
@@ -306,7 +306,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 2
         },
         {
             "Participant": "Yoan",
@@ -315,7 +315,7 @@
             "Score": "1-0",
             "Buteur": "Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 2
         }
     ],
     "bonus": [
