@@ -50,9 +50,9 @@
             "Adversaire": "FC Fleury 91",
             "Date": "2026-10-03",
             "Heure": "20:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "2",
+            "Score Réel": "3-2",
+            "Buteurs": "Armand Gnanduillet, Autre"
         }
     ],
     "pronos": [
@@ -333,7 +333,7 @@
             "Score": "3/1",
             "Buteur": "Keelyan Portut, Armand Gnanduillet, Ivann Botella",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 3
         },
         {
             "Participant": "Yoan",
@@ -360,7 +360,7 @@
             "Score": "3-1",
             "Buteur": "Armand Gnanduillet, Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 3
         }
     ],
     "bonus": [
