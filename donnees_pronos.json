@@ -388,6 +388,15 @@
             "Buteur": "Armand Gnanduillet, Ivann Botella",
             "Doublé ?": "Ivann Botella",
             "Points": -3
+        },
+        {
+            "Participant": "Vincent",
+            "Match": "SMC-VFC LA ROCHE",
+            "Prono (1N2)": "1",
+            "Score": "1-0",
+            "Buteur": "Fahd El Khoumisti",
+            "Doublé ?": "Aucun",
+            "Points": 0
         }
     ],
     "bonus": [
