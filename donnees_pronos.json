@@ -370,6 +370,15 @@
             "Buteur": "Armand Gnanduillet, Fahd El Khoumisti, Keelyan Portut",
             "Doublé ?": "Aucun",
             "Points": 3
+        },
+        {
+            "Participant": "Adri",
+            "Match": "SMC-VFC LA ROCHE",
+            "Prono (1N2)": "1",
+            "Score": "3-1",
+            "Buteur": "Keelyan Portut, Fahd El Khoumisti",
+            "Doublé ?": "Fahd El Khoumisti",
+            "Points": -3
         }
     ],
     "bonus": [
