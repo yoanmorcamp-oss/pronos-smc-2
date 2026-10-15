@@ -59,9 +59,9 @@
             "Adversaire": "LA ROCHE ",
             "Date": "2026-10-15",
             "Heure": "20:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "1",
+            "Score Réel": "2-1",
+            "Buteurs": "Autre, Keelyan Portut, Matthis Daffot"
         }
     ],
     "pronos": [
@@ -378,7 +378,7 @@
             "Score": "3-1",
             "Buteur": "Armand Gnanduillet, Zoumana Bagbema",
             "Doublé ?": "Armand Gnanduillet",
-            "Points": -3
+            "Points": -1
         },
         {
             "Participant": "Nathéo",
@@ -387,7 +387,7 @@
             "Score": "3/1",
             "Buteur": "Armand Gnanduillet, Ivann Botella, Fahd El Khoumisti",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 2
         },
         {
             "Participant": "Vincent",
@@ -396,7 +396,7 @@
             "Score": "1-0",
             "Buteur": "Fahd El Khoumisti",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 2
         },
         {
             "Participant": "Allan",
@@ -405,7 +405,7 @@
             "Score": "3-1",
             "Buteur": "Ivann Botella, Fahd El Khoumisti, Armand Gnanduillet",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 2
         },
         {
             "Participant": "Yoan",
@@ -414,7 +414,7 @@
             "Score": "2/1",
             "Buteur": "Ivann Botella, Keelyan Portut",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         }
     ],
     "bonus": [
