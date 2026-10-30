@@ -424,6 +424,15 @@
             "Buteur": "Ivann Botella, Keelyan Portut",
             "Doublé ?": "Aucun",
             "Points": 5
+        },
+        {
+            "Participant": "Nathéo",
+            "Match": "Le Puy-SMC",
+            "Prono (1N2)": "1",
+            "Score": "2/1",
+            "Buteur": "Keelyan Portut, Armand Gnanduillet",
+            "Doublé ?": "Aucun",
+            "Points": 0
         }
     ],
     "bonus": [
