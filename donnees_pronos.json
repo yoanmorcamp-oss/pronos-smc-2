@@ -68,9 +68,9 @@
             "Adversaire": "Le Puy en Velay football Club",
             "Date": "2026-10-31",
             "Heure": "14:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "N",
+            "Score Réel": "2-3",
+            "Buteurs": "Fahd El Khoumisti, Fahd El Khoumisti"
         }
     ],
     "pronos": [
@@ -432,7 +432,7 @@
             "Score": "2/1",
             "Buteur": "Keelyan Portut, Fahd El Khoumisti",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 3
         },
         {
             "Participant": "Jo",
@@ -441,7 +441,7 @@
             "Score": "1-3",
             "Buteur": "Keelyan Portut, Fahd El Khoumisti, Armand Gnanduillet",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 3
         },
         {
             "Participant": "Yoan",
@@ -450,7 +450,7 @@
             "Score": "2/0",
             "Buteur": "Fahd El Khoumisti, Mohamed Hafid",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 3
         }
     ],
     "bonus": [
