@@ -480,13 +480,13 @@
             "Points": 0
         },
         {
-            "Participant": "Adri",
+            "Participant": "Jo",
             "Match": "SMC-VERSAIILLES",
             "Prono (1N2)": "1",
-            "Score": "2-1",
-            "Buteur": "Léo Milliner, Fahd El Khoumisti",
-            "Doublé ?": "Aucun",
-            "Points": 0
+            "Score": "2-2",
+            "Buteur": "Fahd El Khoumisti",
+            "Doublé ?": "Fahd El Khoumisti",
+            "Points": -3
         }
     ],
     "bonus": [
