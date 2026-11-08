@@ -77,9 +77,9 @@
             "Adversaire": "Versailles ",
             "Date": "2026-11-07",
             "Heure": "14:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "1",
+            "Score Réel": "1-0",
+            "Buteurs": "Fahd El Khoumisti"
         }
     ],
     "pronos": [
@@ -468,7 +468,7 @@
             "Score": "1/0",
             "Buteur": "Fahd El Khoumisti",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Allan",
@@ -477,7 +477,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Salim Diakité",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Jo",
@@ -486,7 +486,7 @@
             "Score": "2-2",
             "Buteur": "Fahd El Khoumisti",
             "Doublé ?": "Fahd El Khoumisti",
-            "Points": -3
+            "Points": 2
         },
         {
             "Participant": "Nathéo",
@@ -495,7 +495,7 @@
             "Score": "3/2",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut, Daffot",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         },
         {
             "Participant": "Yoan",
@@ -504,7 +504,7 @@
             "Score": "3/0",
             "Buteur": "Fahd El Khoumisti, Keelyan Portut, Salim Diakité",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 5
         }
     ],
     "bonus": [
