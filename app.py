@@ -14,12 +14,7 @@ str_lit.set_page_config(
 )
 
 str_lit.markdown(
-    """
-    <head>
-        <link rel="apple-touch-icon" href="icone.png">
-        <link rel="icon" type="image/png" href="icone.png">
-    </head>
-""",
+    """<head><link rel="apple-touch-icon" href="icone.png"><link rel="icon" type="image/png" href="icone.png"></head>""",
     unsafe_allow_html=True,
 )
 
@@ -281,10 +276,5 @@ except Exception:
     pass
 
 # --- DESIGN ET STYLE ---
-str_lit.markdown("""
-    <style>
-    .stApp { background-color: #f4f6f9; color: #002D62; }
-    h1 { color: #002D62 !important; font-weight: 800; text-transform: uppercase; font-size: 1.5rem !important; }
-    h2, h3, label, p { color: #002D62 !important; font-weight: 600; }
-    .stButton > button { background-color: #E30613 !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; width: 100%; }
-    [data-testid="stSidebar"] { background-color: #
+str_lit.markdown(
+    "<style>.stApp { background-color
