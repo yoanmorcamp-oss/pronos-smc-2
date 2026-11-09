@@ -632,6 +632,17 @@ elif menu == "⚙️ Espace Admin":
         "🗑️ Supprimer un Match",
     ])
 
+    # --- AJOUTE LE BOUTON ICI ---
+    str_lit.markdown("---")
+    col1, col2 = str_lit.columns([2, 1])
+    with col1:
+        str_lit.info("💡 En cas de décalage dans le classement, clique ici pour forcer le recalcul global.")
+    with col2:
+        if str_lit.button("🔄 Recalculer les points"):
+            calculer_points()
+            str_lit.success("Recalcul effectué !")
+            str_lit.rerun()
+
     with tab_m:
       with str_lit.form("f_match"):
         id_m = str_lit.text_input("Nom du Match (ex: SMC - Bastia)")
