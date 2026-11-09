@@ -241,13 +241,16 @@ def calculer_points():
             p_buteur = str(p["Buteur"]).strip()
             p_double = str(p["Doublé ?"]).strip()
 
+            # 1N2 correct (+2 pts)
             if res_reel and prono_1n2 == res_reel:
                 points += 2
 
+            # Score exact (+10 pts)
             if score_reel and score_reel_brut and score_reel != "nan" and "-" in score_reel:
                 if prono_score and prono_score == score_reel:
                     points += 10
 
+            # Buteurs corrects (+3 pts par buteur)
             buteurs_choisis = [
                 b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
             ]
@@ -256,6 +259,7 @@ def calculer_points():
                 if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
                     points += 3
 
+            # Doublé (+5 pts ou -3 pts)
             if p_double and p_double != "Aucun" and p_double != "nan":
                 joueur_double_annonce = p_double.lower()
                 buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
@@ -269,6 +273,7 @@ def calculer_points():
             str_lit.session_state.pronos.loc[idx, "Points"] = 0
 
     sauvegarder_donnees()
+
 
 calculer_points()
 
@@ -314,5 +319,14 @@ menu = str_lit.sidebar.radio(
 
 
 def obtenir_liste_participants():
-    p_pronos = (
-        str_
+    p_pronos = []
+    if not str_lit.session_state.pronos.empty and "Participant" in str_lit.session_state.pronos.columns:
+        p_pronos = str_lit.session_state.pronos["Participant"].unique().tolist()
+    
+    p_bonus = []
+    if not str_lit.session_state.bonus.empty and "Participant" in str_lit.session_state.bonus.columns:
+        p_bonus = str_lit.session_state.bonus["Participant"].unique().tolist()
+        
+    tous = set(PARTICIPANTS_INITIAUX + p_pronos + p_bonus)
+    if "" in tous:
+        tous.remove("")
