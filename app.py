@@ -210,7 +210,6 @@ def calculer_points():
       row = match_info.iloc[0]
       res_reel = str(row["Résultat"]).strip()
       
-      # Récupération propre du score réel
       score_reel_brut = str(row["Score Réel"]).strip()
       score_reel = (
           score_reel_brut.replace(" ", "")
@@ -246,7 +245,7 @@ def calculer_points():
       if res_reel and prono_1n2 == res_reel:
         points += 2
 
-      # SÉCURITÉ : Score exact (+10 pts) SEULEMENT si le score réel est rempli et valide (contient un tiret)
+      # Score exact (+10 pts) uniquement si le score réel est valide et contient un tiret
       if score_reel and score_reel_brut and score_reel != "nan" and "-" in score_reel:
         if prono_score and prono_score == score_reel:
           points += 10
@@ -272,6 +271,9 @@ def calculer_points():
       str_lit.session_state.pronos.loc[idx, "Points"] = int(points)
     else:
       str_lit.session_state.pronos.loc[idx, "Points"] = 0
+
+  # SAUVEGARDE AUTOMATIQUE : Met à jour le fichier JSON avec les vrais points corrigés
+  sauvegarder_donnees()
 
 calculer_points()
 
