@@ -872,5 +872,5 @@ elif menu == "⚙️ Espace Admin":
         str_lit.write("Voici le contenu actuel de session_state.pronos :")
         str_lit.dataframe(str_lit.session_state.pronos)
 
-elif mdp != "":
-    str_lit.error("Mot de passe incorrect.")
+    elif mdp != "":
+        str_lit.error("Mot de passe incorrect.")
