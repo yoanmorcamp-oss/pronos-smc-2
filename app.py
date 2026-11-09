@@ -210,17 +210,15 @@ def calculer_points():
       row = match_info.iloc[0]
       res_reel = str(row["Résultat"]).strip()
       
-      # Nettoyage robuste du score réel (enlève les espaces, gère - , – et /)
+      # Récupération propre du score réel
+      score_reel_brut = str(row["Score Réel"]).strip()
       score_reel = (
-          str(row["Score Réel"])
-          .strip()
-          .replace(" ", "")
+          score_reel_brut.replace(" ", "")
           .replace("–", "-")
           .replace("/", "-")
       )
-      
-      buteurs_reels_brut = str(row["Buteurs"]).strip()
 
+      buteurs_reels_brut = str(row["Buteurs"]).strip()
       buteurs_reels_liste = [
           b.strip().lower()
           for b in buteurs_reels_brut.split(",")
@@ -234,11 +232,9 @@ def calculer_points():
       prono_1n2_brut = str(p["Prono (1N2)"]).strip()
       prono_1n2 = prono_1n2_brut.split()[0] if prono_1n2_brut else ""
       
-      # Nettoyage robuste du prono score de la même manière
+      prono_score_brut = str(p["Score"]).strip()
       prono_score = (
-          str(p["Score"])
-          .strip()
-          .replace(" ", "")
+          prono_score_brut.replace(" ", "")
           .replace("–", "-")
           .replace("/", "-")
       )
@@ -250,9 +246,10 @@ def calculer_points():
       if res_reel and prono_1n2 == res_reel:
         points += 2
 
-      # Score exact correct (+10 pts)
-      if score_reel and prono_score and prono_score == score_reel:
-        points += 10
+      # SÉCURITÉ : Score exact (+10 pts) SEULEMENT si le score réel est rempli et valide (contient un tiret)
+      if score_reel and score_reel_brut and score_reel != "nan" and "-" in score_reel:
+        if prono_score and prono_score == score_reel:
+          points += 10
 
       # Buteurs corrects (+3 pts par buteur)
       buteurs_choisis = [
@@ -275,7 +272,6 @@ def calculer_points():
       str_lit.session_state.pronos.loc[idx, "Points"] = int(points)
     else:
       str_lit.session_state.pronos.loc[idx, "Points"] = 0
-
 
 calculer_points()
 
