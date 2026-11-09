@@ -209,9 +209,16 @@ def calculer_points():
     if not match_info.empty:
       row = match_info.iloc[0]
       res_reel = str(row["Résultat"]).strip()
+      
+      # Nettoyage robuste du score réel (enlève les espaces, gère - , – et /)
       score_reel = (
-          str(row["Score Réel"]).strip().replace(" ", "").replace("–", "-")
+          str(row["Score Réel"])
+          .strip()
+          .replace(" ", "")
+          .replace("–", "-")
+          .replace("/", "-")
       )
+      
       buteurs_reels_brut = str(row["Buteurs"]).strip()
 
       buteurs_reels_liste = [
@@ -226,9 +233,16 @@ def calculer_points():
       points = 0
       prono_1n2_brut = str(p["Prono (1N2)"]).strip()
       prono_1n2 = prono_1n2_brut.split()[0] if prono_1n2_brut else ""
+      
+      # Nettoyage robuste du prono score de la même manière
       prono_score = (
-          str(p["Score"]).strip().replace(" ", "").replace("–", "-")
+          str(p["Score"])
+          .strip()
+          .replace(" ", "")
+          .replace("–", "-")
+          .replace("/", "-")
       )
+      
       p_buteur = str(p["Buteur"]).strip()
       p_double = str(p["Doublé ?"]).strip()
 
