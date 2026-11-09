@@ -14,7 +14,12 @@ str_lit.set_page_config(
 )
 
 str_lit.markdown(
-    """<head><link rel="apple-touch-icon" href="icone.png"><link rel="icon" type="image/png" href="icone.png"></head>""",
+    """
+    <head>
+        <link rel="apple-touch-icon" href="icone.png">
+        <link rel="icon" type="image/png" href="icone.png">
+    </head>
+""",
     unsafe_allow_html=True,
 )
 
@@ -206,75 +211,3 @@ def calculer_points():
             res_reel = str(row["Résultat"]).strip()
 
             score_reel_brut = str(row["Score Réel"]).strip()
-            score_reel = (
-                score_reel_brut.replace(" ", "")
-                .replace("–", "-")
-                .replace("/", "-")
-            )
-
-            buteurs_reels_brut = str(row["Buteurs"]).strip()
-            buteurs_reels_liste = [
-                b.strip().lower()
-                for b in buteurs_reels_brut.split(",")
-                if b.strip()
-            ]
-            compteur_buts_reels = {}
-            for b in buteurs_reels_liste:
-                compteur_buts_reels[b] = compteur_buts_reels.get(b, 0) + 1
-
-            points = 0
-            prono_1n2_brut = str(p["Prono (1N2)"]).strip()
-            prono_1n2 = prono_1n2_brut.split()[0] if prono_1n2_brut else ""
-
-            prono_score_brut = str(p["Score"]).strip()
-            prono_score = (
-                prono_score_brut.replace(" ", "")
-                .replace("–", "-")
-                .replace("/", "-")
-            )
-
-            p_buteur = str(p["Buteur"]).strip()
-            p_double = str(p["Doublé ?"]).strip()
-
-            # 1N2 correct (+2 pts)
-            if res_reel and prono_1n2 == res_reel:
-                points += 2
-
-            # Score exact (+10 pts)
-            if score_reel and score_reel_brut and score_reel != "nan" and "-" in score_reel:
-                if prono_score and prono_score == score_reel:
-                    points += 10
-
-            # Buteurs corrects (+3 pts par buteur)
-            buteurs_choisis = [
-                b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
-            ]
-            for b in buteurs_choisis:
-                b_lower = b.lower()
-                if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
-                    points += 3
-
-            # Doublé (+5 pts ou -3 pts)
-            if p_double and p_double != "Aucun" and p_double != "nan":
-                joueur_double_annonce = p_double.lower()
-                buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
-                if buts_du_joueur >= 2:
-                    points += 5
-                else:
-                    points -= 3
-
-            str_lit.session_state.pronos.loc[idx, "Points"] = int(points)
-        else:
-            str_lit.session_state.pronos.loc[idx, "Points"] = 0
-
-    sauvegarder_donnees()
-
-
-try:
-    calculer_points()
-except Exception:
-    pass
-
-# --- DESIGN ET STYLE ---
-str_lit.markdown(
-    "<style>.stApp { background-color
