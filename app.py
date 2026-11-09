@@ -14,12 +14,7 @@ str_lit.set_page_config(
 )
 
 str_lit.markdown(
-    """
-    <head>
-        <link rel="apple-touch-icon" href="icone.png">
-        <link rel="icon" type="image/png" href="icone.png">
-    </head>
-""",
+    "<head><link rel=\"apple-touch-icon\" href=\"icone.png\"><link rel=\"icon\" type=\"image/png\" href=\"icone.png\"></head>",
     unsafe_allow_html=True,
 )
 
@@ -211,3 +206,170 @@ def calculer_points():
             res_reel = str(row["Résultat"]).strip()
 
             score_reel_brut = str(row["Score Réel"]).strip()
+            score_reel = (
+                score_reel_brut.replace(" ", "")
+                .replace("–", "-")
+                .replace("/", "-")
+            )
+
+            buteurs_reels_brut = str(row["Buteurs"]).strip()
+            buteurs_reels_liste = [
+                b.strip().lower()
+                for b in buteurs_reels_brut.split(",")
+                if b.strip()
+            ]
+            compteur_buts_reels = {}
+            for b in buteurs_reels_liste:
+                compteur_buts_reels[b] = compteur_buts_reels.get(b, 0) + 1
+
+            points = 0
+            prono_1n2_brut = str(p["Prono (1N2)"]).strip()
+            prono_1n2 = prono_1n2_brut.split()[0] if prono_1n2_brut else ""
+
+            prono_score_brut = str(p["Score"]).strip()
+            prono_score = (
+                prono_score_brut.replace(" ", "")
+                .replace("–", "-")
+                .replace("/", "-")
+            )
+
+            p_buteur = str(p["Buteur"]).strip()
+            p_double = str(p["Doublé ?"]).strip()
+
+            if res_reel and prono_1n2 == res_reel:
+                points += 2
+
+            if score_reel and score_reel_brut and score_reel != "nan" and "-" in score_reel:
+                if prono_score and prono_score == score_reel:
+                    points += 10
+
+            buteurs_choisis = [
+                b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
+            ]
+            for b in buteurs_choisis:
+                b_lower = b.lower()
+                if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
+                    points += 3
+
+            if p_double and p_double != "Aucun" and p_double != "nan":
+                joueur_double_annonce = p_double.lower()
+                buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
+                if buts_du_joueur >= 2:
+                    points += 5
+                else:
+                    points -= 3
+
+            str_lit.session_state.pronos.loc[idx, "Points"] = int(points)
+        else:
+            str_lit.session_state.pronos.loc[idx, "Points"] = 0
+
+    sauvegarder_donnees()
+
+
+try:
+    calculer_points()
+except Exception:
+    pass
+
+# --- DESIGN ET STYLE ---
+str_lit.markdown(
+    "<style>.stApp { background-color: #f4f6f9; color: #002D62; } h1 { color: #002D62 !important; font-weight: 800; text-transform: uppercase; font-size: 1.5rem !important; } h2, h3, label, p { color: #002D62 !important; font-weight: 600; } .stButton > button { background-color: #E30613 !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; width: 100%; } [data-testid=\"stSidebar\"] { background-color: #002D62; } [data-testid=\"stSidebar\"] p, [data-testid=\"stSidebar\"] span, [data-testid=\"stSidebar\"] label, [data-testid=\"stSidebar\"] .stRadio div { color: white !important; font-weight: 600; }</style>",
+    unsafe_allow_html=True,
+)
+
+# En-tête avec Logo centré
+col1, col2, col3 = str_lit.columns([1, 1, 1])
+with col2:
+    try:
+        str_lit.image("logo.png", width=150)
+    except Exception:
+        pass
+
+str_lit.markdown(
+    "<h1 style='text-align: center;'>⚽ CONCOURS DE PRONOS - SMC 🔴🔵</h1>",
+    unsafe_allow_html=True,
+)
+str_lit.markdown(
+    "<p style='text-align: center; color: #E30613 !important; font-weight: bold;'>Saison 2026-2027</p>",
+    unsafe_allow_html=True,
+)
+
+# Menu Navigation Latéral
+menu = str_lit.sidebar.radio(
+    "📌 Navigation",
+    [
+        "📝 Faire mon Prono",
+        "🏆 Classement",
+        "👥 Participants",
+        "⚙️ Espace Admin",
+    ],
+)
+
+
+def obtenir_liste_participants():
+    p_pronos = []
+    if not str_lit.session_state.pronos.empty and "Participant" in str_lit.session_state.pronos.columns:
+        p_pronos = str_lit.session_state.pronos["Participant"].unique().tolist()
+    
+    p_bonus = []
+    if not str_lit.session_state.bonus.empty and "Participant" in str_lit.session_state.bonus.columns:
+        p_bonus = str_lit.session_state.bonus["Participant"].unique().tolist()
+        
+    tous = set(PARTICIPANTS_INITIAUX + p_pronos + p_bonus)
+    if "" in tous:
+        tous.remove("")
+    return sorted(list(tous))
+
+
+# --- 1. FAIRE MON PRONO ---
+if menu == "📝 Faire mon Prono":
+    str_lit.header("✍️ Enregistrer ton Pronostic")
+
+    if str_lit.session_state.matchs.empty:
+        str_lit.warning(
+            "⚠️ Aucun match trouvé. Va dans l'Espace Admin pour créer un match !"
+        )
+    else:
+        matchs_visibles = []
+        tz_paris = ZoneInfo("Europe/Paris")
+        maintenant = datetime.now(tz_paris)
+
+        for _, row in str_lit.session_state.matchs.iterrows():
+            try:
+                d_str = str(row["Date"]).strip()
+                h_str = str(row["Heure"]).strip()
+                match_dt = datetime.strptime(
+                    f"{d_str} {h_str}", "%Y-%m-%d %H:%M"
+                ).replace(tzinfo=tz_paris)
+                ouverture_pronos = match_dt - timedelta(days=6)
+                fermeture_affichage = match_dt + timedelta(hours=2)
+
+                if ouverture_pronos <= maintenant <= fermeture_affichage:
+                    matchs_visibles.append(row["ID Match"])
+            except Exception:
+                matchs_visibles.append(row["ID Match"])
+
+        if not matchs_visibles and not str_lit.session_state.matchs.empty:
+            matchs_visibles = [str_lit.session_state.matchs.iloc[-1]["ID Match"]]
+
+        if not matchs_visibles:
+            str_lit.info(
+                "⏳ Aucun match ouvert aux pronostics pour le moment (les matchs s'ouvrent 6 jours avant la rencontre)."
+            )
+        else:
+            choix_participant = str_lit.selectbox(
+                "Pseudo", obtenir_liste_participants() + ["➕ Nouveau"]
+            )
+
+            nom_utilisateur = ""
+            acces_autorise = False
+
+            if choix_participant == "➕ Nouveau":
+                nom_utilisateur = str_lit.text_input("Nouveau pseudo :").strip()
+                if nom_utilisateur:
+                    mdp_nouveau = str_lit.text_input(
+                        "Crée ton mot de passe personnel :", type="password"
+                    )
+                    if str_lit.button("Valider la création du profil"):
+                        if nom_utilisateur in obtenir_liste_participants():
+                            str_lit.
