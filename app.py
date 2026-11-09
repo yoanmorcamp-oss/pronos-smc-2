@@ -862,9 +862,15 @@ elif menu == "⚙️ Espace Admin":
           )
           str_lit.rerun()
 
-    str_lit.markdown("---")
+   str_lit.markdown("---")
     str_lit.subheader("Liste des matchs actuels")
     str_lit.dataframe(str_lit.session_state.matchs, use_container_width=True)
 
-  elif mdp != "":
+    # --- PLACE LE BLOC DE DEBUG ICI ---
+    str_lit.markdown("---")
+    if str_lit.checkbox("🔍 Afficher le tableau brut des pronostics (Debug)"):
+        str_lit.write("Voici le contenu actuel de session_state.pronos :")
+        str_lit.dataframe(str_lit.session_state.pronos)
+
+elif mdp != "":
     str_lit.error("Mot de passe incorrect.")
