@@ -632,16 +632,16 @@ elif menu == "⚙️ Espace Admin":
         "🗑️ Supprimer un Match",
     ])
 
-    # --- AJOUTE LE BOUTON ICI ---
+    # --- BOUTON DE RECALCUL ---
     str_lit.markdown("---")
     col1, col2 = str_lit.columns([2, 1])
     with col1:
-        str_lit.info("💡 En cas de décalage dans le classement, clique ici pour forcer le recalcul global.")
+      str_lit.info("💡 En cas de décalage dans le classement, clique ici pour forcer le recalcul global.")
     with col2:
-        if str_lit.button("🔄 Recalculer les points"):
-            calculer_points()
-            str_lit.success("Recalcul effectué !")
-            str_lit.rerun()
+      if str_lit.button("🔄 Recalculer les points"):
+        calculer_points()
+        str_lit.success("Recalcul effectué !")
+        str_lit.rerun()
 
     with tab_m:
       with str_lit.form("f_match"):
@@ -862,15 +862,15 @@ elif menu == "⚙️ Espace Admin":
           )
           str_lit.rerun()
 
-   str_lit.markdown("---")
+    str_lit.markdown("---")
     str_lit.subheader("Liste des matchs actuels")
     str_lit.dataframe(str_lit.session_state.matchs, use_container_width=True)
 
-    # --- PLACE LE BLOC DE DEBUG ICI ---
+    # --- BLOC DE DEBUG ---
     str_lit.markdown("---")
     if str_lit.checkbox("🔍 Afficher le tableau brut des pronostics (Debug)"):
-        str_lit.write("Voici le contenu actuel de session_state.pronos :")
-        str_lit.dataframe(str_lit.session_state.pronos)
+      str_lit.write("Voici le contenu actuel de session_state.pronos :")
+      str_lit.dataframe(str_lit.session_state.pronos)
 
-    elif mdp != "":
-        str_lit.error("Mot de passe incorrect.")
+elif mdp != "":
+  str_lit.error("Mot de passe incorrect.")
