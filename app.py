@@ -238,4 +238,81 @@ def calculer_points():
                 .replace("/", "-")
             )
 
-            p_buteur = str
+            p_buteur = str(p["Buteur"]).strip()
+            p_double = str(p["Doublé ?"]).strip()
+
+            if res_reel and prono_1n2 == res_reel:
+                points += 2
+
+            if score_reel and score_reel_brut and score_reel != "nan" and "-" in score_reel:
+                if prono_score and prono_score == score_reel:
+                    points += 10
+
+            buteurs_choisis = [
+                b.strip() for b in p_buteur.split(",") if b.strip() and b != "nan"
+            ]
+            for b in buteurs_choisis:
+                b_lower = b.lower()
+                if b_lower in compteur_buts_reels and compteur_buts_reels[b_lower] > 0:
+                    points += 3
+
+            if p_double and p_double != "Aucun" and p_double != "nan":
+                joueur_double_annonce = p_double.lower()
+                buts_du_joueur = compteur_buts_reels.get(joueur_double_annonce, 0)
+                if buts_du_joueur >= 2:
+                    points += 5
+                else:
+                    points -= 3
+
+            str_lit.session_state.pronos.loc[idx, "Points"] = int(points)
+        else:
+            str_lit.session_state.pronos.loc[idx, "Points"] = 0
+
+    sauvegarder_donnees()
+
+calculer_points()
+
+# --- DESIGN ET STYLE ---
+str_lit.markdown("""
+    <style>
+    .stApp { background-color: #f4f6f9; color: #002D62; }
+    h1 { color: #002D62 !important; font-weight: 800; text-transform: uppercase; font-size: 1.5rem !important; }
+    h2, h3, label, p { color: #002D62 !important; font-weight: 600; }
+    .stButton > button { background-color: #E30613 !important; color: white !important; font-weight: bold !important; border-radius: 8px !important; width: 100%; }
+    [data-testid="stSidebar"] { background-color: #002D62; }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stRadio div { color: white !important; font-weight: 600; }
+    </style>
+""", unsafe_allow_html=True)
+
+# En-tête avec Logo centré
+col1, col2, col3 = str_lit.columns([1, 1, 1])
+with col2:
+    try:
+        str_lit.image("logo.png", width=150)
+    except Exception:
+        pass
+
+str_lit.markdown(
+    "<h1 style='text-align: center;'>⚽ CONCOURS DE PRONOS - SMC 🔴🔵</h1>",
+    unsafe_allow_html=True,
+)
+str_lit.markdown(
+    "<p style='text-align: center; color: #E30613 !important; font-weight: bold;'>Saison 2026-2027</p>",
+    unsafe_allow_html=True,
+)
+
+# Menu Navigation Latéral
+menu = str_lit.sidebar.radio(
+    "📌 Navigation",
+    [
+        "📝 Faire mon Prono",
+        "🏆 Classement",
+        "👥 Participants",
+        "⚙️ Espace Admin",
+    ],
+)
+
+
+def obtenir_liste_participants():
+    p_pronos = (
+        str_
