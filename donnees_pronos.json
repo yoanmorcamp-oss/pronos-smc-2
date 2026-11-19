@@ -541,6 +541,15 @@
             "Buteur": "Fahd El Khoumisti",
             "Doublé ?": "Aucun",
             "Points": 0
+        },
+        {
+            "Participant": "Allan",
+            "Match": "Amiens-SMC",
+            "Prono (1N2)": "1",
+            "Score": "2-1",
+            "Buteur": "Fahd El Khoumisti, Ivann Botella",
+            "Doublé ?": "Aucun",
+            "Points": 0
         }
     ],
     "bonus": [
@@ -580,7 +589,6 @@
         "Adri": "Guy.13062001",
         "Vincent": "#Erding10",
         "Jo": "Faudais@14",
-        "Allan": "basketball14",
-        "Lucky": "Malherbe14114!"
+        "Allan": "basketball14"
     }
 }
