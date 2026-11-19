@@ -104,9 +104,9 @@
         {
             "Participant": "Vincent",
             "Match": "SMC-BASTIA",
-            "Prono (1N2)": "N",
-            "Score": "1-1",
-            "Buteur": "Fahd El Khoumisti",
+            "Prono (1N2)": "1",
+            "Score": "2-1",
+            "Buteur": "Dennis Appiah, Fahd El Khoumisti",
             "Doublé ?": "Aucun",
             "Points": 0
         },
@@ -539,15 +539,6 @@
             "Prono (1N2)": "1",
             "Score": "1/0",
             "Buteur": "Fahd El Khoumisti",
-            "Doublé ?": "Aucun",
-            "Points": 0
-        },
-        {
-            "Participant": "Allan",
-            "Match": "Amiens-SMC",
-            "Prono (1N2)": "1",
-            "Score": "2-1",
-            "Buteur": "Fahd El Khoumisti, Ivann Botella",
             "Doublé ?": "Aucun",
             "Points": 0
         }
