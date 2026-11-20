@@ -86,9 +86,9 @@
             "Adversaire": "Amiens",
             "Date": "2026-11-19",
             "Heure": "20:45",
-            "Résultat": "",
-            "Score Réel": "",
-            "Buteurs": ""
+            "Résultat": "2",
+            "Score Réel": "2-1",
+            "Buteurs": "ivann Botella"
         }
     ],
     "pronos": [
@@ -522,7 +522,7 @@
             "Score": "2-1",
             "Buteur": "Fahd El Khoumisti, Dennis Appiah",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 10
         },
         {
             "Participant": "Yoan",
@@ -531,7 +531,7 @@
             "Score": "2-1",
             "Buteur": "Ivann Botella",
             "Doublé ?": "Aucun",
-            "Points": 0
+            "Points": 15
         },
         {
             "Participant": "Nathéo",
